@@ -1735,7 +1735,7 @@ const demoRecentRuns = () => {
 function DemoEvalIntake({ trainee }) {
   const DEMO_EVAL = demoEvalFor(trainee || {});
   const [open, setOpen] = useState(true);
-  const evBase = trainee && trainee.id ? `/demo/coach/trainees/${encodeURIComponent(trainee.id)}` : null;
+  const evBase = trainee && trainee.id ? `/demo/coach/athletes/${encodeURIComponent(trainee.id)}` : null;
   const [analysis, setAnalysis] = useState(() => (typeof window !== 'undefined' && urlFlagFromPath(window.location.pathname, evBase, 'evaluation-summary')) === true);   // the real page's SUMMARY (#837 parity), on its own URL like the real one
   useUrlFlag(analysis, (v) => setAnalysis(!!v), evBase, 'evaluation-summary');
   return (
@@ -5445,18 +5445,23 @@ const TAB_KEYS = [...TABS.map(t => t.key), ...ATHLETE_GROUP];
 // the dropdown pages get the REAL app's own URL words (#770): Review > Tools = /demo/coach/review-tools,
 // Sessions > Single = /demo/coach/sessions-single - each sub-page its own URL, as on /coach/*
 const SUB_PAGE = { 'review-tools': ['review', 'tools'], 'sessions-single': ['sessions', 'single'] };
+// #1006: the Athletes tab's URL is the UI's word, as on the real app (/coach/athletes): /demo/coach/athletes[/<id>].
+// The internal key stays 'trainees'; old /demo/coach/trainees links still open it.
+const TAB_WORD = { trainees: 'athletes' };
+const tabWord = (key) => TAB_WORD[key] || key;
 function tabFromPath(p) {
   const m = (p || '').match(/^\/demo\/coach\/([^/?#]+)/);
   if (!m) return 'dashboard';
+  if (m[1] === 'athletes') return 'trainees';
   if (SUB_PAGE[m[1]]) return SUB_PAGE[m[1]][0];
   return TAB_KEYS.includes(m[1]) ? m[1] : 'dashboard';
 }
 const subFromPath = (p, tab) => { const m = (p || '').match(/^\/demo\/coach\/([^/?#]+)/); const sp = m && SUB_PAGE[m[1]]; return sp && sp[0] === tab ? sp[1] : null; };
 // Deep-link the selected item so every navigational click has its own URL:
-//   /demo/coach/trainees/<id>   → trainee detail
+//   /demo/coach/athletes/<id>   → trainee detail (old /trainees/<id> links too)
 //   /demo/coach/programs/<id>   → program open
 function traineeIdFromPath(p) {
-  const m = (p || '').match(/^\/demo\/coach\/trainees\/([^/?#]+)/);
+  const m = (p || '').match(/^\/demo\/coach\/(?:athletes|trainees)\/([^/?#]+)/);
   return m ? decodeURIComponent(m[1]) : null;
 }
 function programIdFromPath(p) {
@@ -5506,7 +5511,7 @@ export default function CoachDemo() {
     // selection and stays mounted when the tab does not actually change.
     setProgramsReset((n) => n + 1);
     if (typeof window === 'undefined') return;
-    const target = key === 'dashboard' ? '/demo/coach' : `/demo/coach/${word || key}`;
+    const target = key === 'dashboard' ? '/demo/coach' : `/demo/coach/${word || tabWord(key)}`;
     if (window.location.pathname !== target) {
       window.history.pushState({ tab: key }, '', target + window.location.hash);
     }
@@ -5525,7 +5530,7 @@ export default function CoachDemo() {
     setTab('trainees');
     setSelectedTrainee(id);
     if (typeof window === 'undefined') return;
-    const target = `/demo/coach/trainees/${encodeURIComponent(id)}`;
+    const target = `/demo/coach/athletes/${encodeURIComponent(id)}`;
     if (window.location.pathname !== target) {
       window.history.pushState({ tab: 'trainees', trainee: id }, '', target + window.location.hash);
     }
@@ -5551,7 +5556,7 @@ export default function CoachDemo() {
     setReturnTab('trainees');
     if (back !== 'trainees') setTab(back);
     if (typeof window !== 'undefined') {
-      const target = back === 'dashboard' ? '/demo/coach' : `/demo/coach/${back}`;
+      const target = back === 'dashboard' ? '/demo/coach' : `/demo/coach/${tabWord(back)}`;
       if (window.location.pathname !== target) window.history.pushState({ tab: back }, '', target + window.location.hash);
     }
   };

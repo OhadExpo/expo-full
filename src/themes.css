@@ -1918,30 +1918,22 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   .bhbc-load-inner .bhbc-pos-inj [data-pos] { display: inline-block; min-width: var(--pos-w, 0px); padding-inline-end: 10px; }
   .bhbc-load-inner .bhbc-pos-inj [data-sep] { display: none; }
 }
-/* WIDE BOARD (761+, 29.9 #395, Ohad: "the name and the position need to be
-   vertically center aligned inside the borders" / "the location of the injury
-   is not perfect ocd order"): the athlete cell is a two-column grid - name over
-   position in a column as wide as the board's longest name or position
-   (--pos-w), and the injury in its own column SPANNING both lines, so it sits
-   on the row's centre and starts on one x in every row. line-heights are
-   explicit so the two-line block is exactly the ink's height and centres. */
+/* WIDE BOARD (761+): name over position in the athlete cell, vertically centred (29.9 #395), and the INJURY IN ITS
+   OWN COLUMN (24.10 #1008, Ohad on the tablet: "I don't like how the injuries are displayed here" - it rode the
+   position's line at a ragged x: a 7.5em slot that FORWARD-CENTER / GUARD-FORWARD outgrew). The column starts on one x
+   in every row by construction; the copy inside the name cell is the phone's. line-heights are explicit so the
+   two-line blocks are exactly their ink and centre on the row. */
 @media (min-width: 761px) {
-  .bhbc-zone .bhbc-load-row > *:nth-child(2) { display: grid; grid-template-columns: var(--pos-w, max-content) minmax(0, 1fr); column-gap: 16px; row-gap: 2px; align-items: center; }
-  .bhbc-zone .bhbc-load-row > *:nth-child(2) > [data-name] { grid-column: 1; grid-row: 1; line-height: 16px; }
-  .bhbc-zone .bhbc-load-row .bhbc-pos-inj { display: contents !important; }
-  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-pos] { grid-column: 1; grid-row: 2; min-width: 0; padding-inline-end: 0; line-height: 14px; }
-  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj], .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj-empty] { grid-column: 2; grid-row: 1 / span 2; align-self: center; line-height: 16px; white-space: normal; overflow-wrap: break-word; }   /* spans both lines, so a long injury wraps onto the second instead of clipping (770px: 'Lower back L' in 92px; AUDIT-470) */
+  .bhbc-zone .bhbc-load-row > *:nth-child(2) { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 2px; align-items: center; }
+  .bhbc-zone .bhbc-load-row > *:nth-child(2) > [data-name] { line-height: 16px; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj { display: block !important; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-pos] { display: block; min-width: 0; padding-inline-end: 0; line-height: 14px; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj], .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj-empty], .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-sep] { display: none !important; }
 }
-
-/* A TABLET BOARD (761-1099, team version #904): the athlete cell is ~165px, the name column takes ~130 of it, and the
-   injury column was left ~20px - 'המסטרינג ימין' / 'HAMSTRING R' stood one letter per line (measured at 820, he and en).
-   Here the injury sits on the position's line instead, after a position slot of one width, so it still starts on one x
-   in every row; a name keeps its own line above. Desktop (1100+) keeps the two-column cell. */
-@media (min-width: 761px) and (max-width: 1099px) {
-  .bhbc-zone .bhbc-load-row > *:nth-child(2) { grid-template-columns: minmax(0, 1fr); }
-  .bhbc-zone .bhbc-load-row .bhbc-pos-inj { display: flex !important; grid-column: 1; grid-row: 2; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden; }
-  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-pos] { grid-column: auto; grid-row: auto; flex: 0 0 auto; min-width: 7.5em; }
-  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj], .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj-empty] { grid-column: auto; grid-row: auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 14px; }
+/* the phone reads the injury inside the name cell (its own layout, above) */
+@media (max-width: 760px) {
+  .bhbc-load-row > [data-lbl="Injury"] { display: none !important; }
+  .bhbc-load-inner { min-width: 0 !important; }   /* the restacked phone board has no floor (620 had it, 621-760 did not) */
 }
 
 /* BHBC MONTH CALENDAR BELOW DESKTOP (29.9 #380, tablet overflow audit): a
@@ -2557,3 +2549,17 @@ body[data-lang="he"] .nadlan-view, body[data-lang="he"] .nadlan-view *:not(svg):
 /* #975 SQUARE DAYS: an attendance / lifts row is as tall as its square day cells - the phone's tap floor for a
    role=button row (36 / 40px) is what stretched every 14px mark into a 24 x 36 box. The whole row stays the target. */
 .bhbc-zone .bhbc-sq-row { min-height: 36px !important; height: auto !important; }   /* #977: the house row (a phone's 40px tap floor does not stretch it) */
+
+/* #1009: the Overview's Medical and This-week rows are columns from 621 (injury | status, kind | minutes on one x down
+   the card - measured in HeadCoachReport). A phone has no room for the columns: one running line, the status / minutes
+   after a middle dot, as before. */
+@media (max-width: 620px) {
+  .bhbc-zone .bhbc-med-dx, .bhbc-zone .bhbc-wk-what { display: block !important; white-space: normal; overflow-wrap: break-word; }
+  .bhbc-zone .bhbc-med-dx > span, .bhbc-zone .bhbc-wk-what > span { display: inline !important; white-space: normal !important; }
+  .bhbc-zone .bhbc-med-st::before, .bhbc-zone .bhbc-wk-min::before { content: ' \00B7  '; color: var(--c-tm); font-weight: 400; }
+}
+/* #1009: Past practices' kind column is the widest kind from 621; a phone gives it back to the row (it may shorten) */
+@media (max-width: 620px) {
+  .bhbc-zone .bhbc-pp-row > .pp-kind { width: auto !important; flex-shrink: 1 !important; min-width: 0; }
+  .bhbc-zone .bhbc-pp-row > .pp-kind:not(:empty) + .pp-min::before { content: '\00A0\00B7\00A0'; }
+}

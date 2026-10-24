@@ -4471,7 +4471,8 @@ function ClientPortalInner({ clientId, signOut, clientWorkouts, setClientWorkout
           {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 16px':'16px 0 16px'}}>
             <div style={{flex:1,height:1,background:C.bd2}}/>
             <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{(vp.name || '').toUpperCase()}</span>
-            {vp.phase && <span style={{fontSize:10,color:C.tm}}>· {vp.phase}</span>}
+            {/* #1007: a known phase label speaks the portal's language (Accumulation -> צבירה); free text passes through */}
+            {vp.phase && <span dir="auto" style={{fontSize:10,color:C.tm}}>· {tt(vp.phase)}</span>}
             <div style={{flex:1,height:1,background:C.bd2}}/>
           </div>}
           {/* Skip the warm-up preview when every day in this plan is a daily

@@ -129,6 +129,7 @@ One mechanism, `src/urlState.js` (`useUrlSync` / `useUrlFlag`): open = push, Bac
 | Intake pop-ups | `/coach/intake/<submission>` · `/coach/intake/generate-link` (14.10 phase 2) |
 
 | Coach demo inner pages | `/demo/coach/review/<workout>` · `/demo/coach/programs/analysis/<athlete>` (as the real app's; 14.10 phase 2) |
+| Coach demo Athletes (24.10 #1006) | `/demo/coach/athletes` (the roster) · `/demo/coach/athletes/<id>` (the athlete card) - the UI's word, as `/coach/athletes`; old `/demo/coach/trainees[/<id>]` links still open them |
 
 Phase 2 done 14.10. Deliberately NOT in history: menus (MORE, the mobile drawer, filter pills), confirm dialogs, the marketing exit-intent pop-up (opens by itself), the demo's per-exercise note peek.
 

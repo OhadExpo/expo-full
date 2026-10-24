@@ -559,17 +559,18 @@ const weekDays = (today, weekOff) => {
   return { list: out, text: `${monDay(out[0].iso)} – ${monDay(out[6].iso)}` };
 };
 const PHONE_GRID_Q = '(max-width: 620px)';
-function usePhoneGrid() {
-  const [on, setOn] = useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(PHONE_GRID_Q).matches);
+function useMQ(q) {
+  const [on, setOn] = useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(q).matches);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return undefined;
-    const mq = window.matchMedia(PHONE_GRID_Q);
+    const mq = window.matchMedia(q);
     const f = () => setOn(mq.matches);
     f(); mq.addEventListener('change', f);
     return () => mq.removeEventListener('change', f);
-  }, []);
+  }, [q]);
   return on;
 }
+function usePhoneGrid() { return useMQ(PHONE_GRID_Q); }
 const dayHeadInk = (d, today) => (d.iso === today ? ORANGE_TEXT : d.future || d.dow === 6 || d.dow === 5 ? C.td : C.tm);   // C.td, not the hairline colour (#803: 'hard to read')
 // today in view on a narrow screen: the scroller moves so today's column sits
 // at the inner edge of the days (works in both directions - it moves by the
@@ -919,7 +920,7 @@ function SortHeader({ k, sort, label, as: Tag = 'div', style, center = false, fl
     // it; outside a table the button says its own state (27.9 review)
     <Tag {...rest} aria-sort={Tag === 'th' ? (on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
       onClick={go} title={title || (on ? tr(sort.dir === 'asc' ? 'Sort descending' : 'Sort ascending') : `${tr('Sort by')} ${label}`)}
-      style={{ ...style, ...(on ? { color: ORANGE_TEXT } : null), cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+      style={{ ...style, ...(on ? { color: ORANGE_TEXT } : null), cursor: 'pointer', userSelect: 'none', whiteSpace: (style && style.whiteSpace) || 'nowrap' }}>
       <span role="button" tabIndex={0} aria-label={Tag === 'th' ? (aLabel || undefined) : `${aLabel || label}${on ? ` · ${tr(sort.dir === 'asc' ? 'Sort ascending' : 'Sort descending')}` : ''}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }}
         style={hang || flexCell ? { ...(hang ? { position: 'relative' } : null), ...(flexCell ? { display: 'inline-flex', alignItems: 'center', justifyContent: (style.justifyContent || 'flex-start'), minHeight: 0, minWidth: 0 /* the phone's 36 / 40px [role=button] floor is the CELL's (it takes the tap): on the label it stood the hung arrow 11px over LAST (review) */ } : null) } : undefined}>
@@ -1993,7 +1994,7 @@ function attendance28(rec, days) {
            check-in and the three numbers with their own small labels - and the sort bar stands in for the header; a
            phone puts the actions on a third, full-width line. */
         .rh2-k{display:none}
-        @media (max-width:1239px){
+        @media (max-width:620px){
           .bhbc-rh2-head{display:none!important}
           .bhbc-rh2-sortbar{display:flex!important}
           .bhbc-rh2-row{grid-template-columns:minmax(0,1fr) 124px 240px!important;row-gap:8px!important;padding:10px 0!important}
@@ -4641,6 +4642,13 @@ function HeadCoachReport({ rows, fx, fixtures, medical, loads = {}, today, onOpe
       const w = Math.max(96, Math.ceil(Math.max(widest(el, '.bhbc-wk-date'), widest(medRef.current, '.bhbc-med-name'))) + 1);
       el.style.setProperty('--wk-date-w', `${w}px`);
       if (medRef.current) medRef.current.style.setProperty('--med-name-w', `${w}px`);
+      // #1009 (Ohad: "make the columns aligned for each word/column/row. For example the word available, the injuries, the
+      // 60/120min"): the injury and the session kind are columns of the widest one, and the kind column is the injury's
+      // less the time column (46 + its 18), so the medical STATUS and the week's MINUTES start on one x down the card.
+      const inj = Math.ceil(widest(medRef.current, '.bhbc-med-inj')), kind = Math.ceil(widest(el, '.bhbc-wk-kind'));
+      const mid = Math.max(inj, kind + 64) + 1;
+      if (medRef.current) medRef.current.style.setProperty('--med-inj-w', `${mid}px`);
+      el.style.setProperty('--wk-kind-w', `${mid - 64}px`);
     };
     fit(); let live = true; if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (live) fit(); }).catch(() => {});
     return () => { live = false; };
@@ -4784,7 +4792,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
-                    <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{sideTag(inj.side, tr)} · {tr(s.label)}
+                    <span className="bhbc-med-dx" style={{ color: C.tm, minWidth: 0, display: 'grid', gridTemplateColumns: 'var(--med-inj-w, auto) auto', justifyContent: 'start', columnGap: 18, alignItems: 'center' }}><span className="bhbc-med-inj" style={{ whiteSpace: 'nowrap' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{sideTag(inj.side, tr)}</span><span className="bhbc-med-st" style={{ color: inj.status === 'available' ? C.tm : medText(inj.status), fontWeight: inj.status === 'available' ? 400 : 700, whiteSpace: 'nowrap' }}>{tr(s.label)}</span>
                                         {/* THE OVERDUE CLAUSE GETS ITS OWN LINE, ALWAYS.
                         Ohad 19.9, on one athlete's row: "המשפט באיחור של [השחקן]
                         מוציא את הכל מאיזון. תתחיל משפטים כאלה משורה חדשה כדי שלא
@@ -4812,7 +4820,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
       {/* THIS WEEK — team sessions */}
       {sessions.length > 0 && <Section label={tr("This week")} list last src={tr('From the club calendar')}>
         {sessions.length
-          ? <div ref={weekRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 36, rowGap: 0 }}>
+          ? <div ref={weekRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))', columnGap: 36, rowGap: 0 }}>
               {sessions.slice(0, 6).map((s, i) => {
                 return (
                 // date | time | what - three columns on one x down the list, 18px apart, 6px above and under each row.
@@ -4828,7 +4836,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   {/* minWidth gives the label a floor: below it the row wraps and
                       the label keeps its own line, rather than ellipsizing down to
                       two characters, which told the coach nothing. */}
-                  <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{fxLabelFor(s.type, FX_LABEL[s.type] || 'Session')}{s.minutes ? <>{' · '}<MinTok n={s.minutes} /></> : null}</span>
+                  <span className="bhbc-wk-what" style={{ color: C.tm, minWidth: 0, display: 'grid', gridTemplateColumns: 'var(--wk-kind-w, auto) auto', justifyContent: 'start', columnGap: 18, alignItems: 'center' }}><span className="bhbc-wk-kind" style={{ whiteSpace: 'nowrap' }}>{fxLabelFor(s.type, FX_LABEL[s.type] || 'Session')}</span>{s.minutes ? <span className="bhbc-wk-min" style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}><MinTok n={s.minutes} /></span> : <span />}</span>
                 </div>
                 );
               })}
@@ -5606,7 +5614,18 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
   const he = useHe();
   const hasLoad = rows.some(({ acwr, series }) => (acwr && (acwr.ratio != null || (acwr.acute || 0) > 0)) || (series || []).some((v) => v > 0));
   const hasRead = rows.some(({ readiness }) => readiness && readiness.level && readiness.level !== 'unknown');
-  const grid = ['28px', 'minmax(116px,1.5fr)', hasLoad ? '112px' : null, hasLoad ? '46px' : null, hasLoad ? null : '132px', '130px', hasRead ? 'minmax(104px,1.1fr)' : null, '92px'].filter(Boolean).join(' ');
+  // THE INJURY IS ITS OWN COLUMN (24.10 #1008, Ohad on the tablet: "I don't like how the injuries are displayed here"):
+  // it rode the position's line at a ragged x (a 7.5em slot that FORWARD-CENTER outgrew) while the middle of the row
+  // stood empty. Now: a header, one start for every row, body part + side in the status colour over type · days - the
+  // Medical tab's words. A phone keeps it inside the name cell (themes.css hides this column under 761).
+  // widths measured at 768 (#1008 pass 2): last lift 112 holds 'YESTERDAY', the MED button is 64, so the injury column's
+  // 96 + the name's 104 fit with the readiness column on and no sideways scroll
+  // A TABLET (761-1099) keeps the readiness SIGNAL - its dot and the load % - and gives the sentence's width to the
+  // injury and the name (at 820 the injury met LAST LIFT and the sentence stood four lines high); the sentence is the
+  // cell's title and the Roster Health card's check-in
+  const tab = useMQ('(min-width: 761px) and (max-width: 1099px)');
+  const grid = ['28px', tab ? 'minmax(104px,1.2fr)' : 'minmax(104px,1.4fr)', tab ? 'minmax(112px,1fr)' : 'minmax(96px,1fr)', hasLoad ? '112px' : null, hasLoad ? '46px' : null, hasLoad ? null : (tab ? '100px' : '112px'), '130px', hasRead ? (tab ? '76px' : 'minmax(96px,1.1fr)') : null, '72px'].filter(Boolean).join(' ');
+  const gap = tab ? 10 : 12;
   // Days since the last logged weight-room session, per athlete.
   const lastLift = (id) => {
     const ses = ((loads[id] || {}).sessions) || {};
@@ -5631,8 +5650,9 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
     avail: (r) => Math.min(r.avail || 1, 4),                // Out (med or personal) > non-contact > limited > full
     ready: (r) => READ_SEV[r.readiness && r.readiness.level] ?? null,
     trend: (r) => ((r.series || []).some((v) => v > 0) ? (r.series || []).reduce((a, v) => a + (Number(v) || 0), 0) : null),
+    inj: (r) => { const i = worstInjury(medical, r.t.id); return i ? 4 - (INJ_SEV[i.status] ?? 4) : null; },   // out first, none last
   });
-  const headCols = [['jersey', '#'], ['name', tr('Athlete')], ...(hasLoad ? [['acwr', 'ACWR'], ['acute', tr('7d')]] : [['lift', tr('last lift')]]), ['avail', tr('Availability')], ...(hasRead ? [['ready', tr('Readiness')]] : [])];
+  const headCols = [['jersey', '#'], ['name', tr('Athlete')], ['inj', tr('Injury')], ...(hasLoad ? [['acwr', 'ACWR'], ['acute', tr('7d')]] : [['lift', tr('last lift')]]), ['avail', tr('Availability')], ...(hasRead ? [['ready', tr('Readiness')]] : [])];
   // ONE START FOR EVERY INJURY (27.9 #352, Ohad: "i don't like that the
   // injuries are not horizontally aligned from one row to another"). The
   // injury followed each position ("GUARD · OTHER", "FORWARD-CENTER · ANKLE"),
@@ -5656,9 +5676,9 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
           14px back as its own padding (a scroller clips at its padding box, so a band inside can reach into it). */}
       <div className="bhbc-load-scroll" style={{ overflowX: 'auto', margin: '0 -14px', padding: '0 14px' }}>
 
-        <div ref={loadInnerRef} className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
+        <div ref={loadInnerRef} className="bhbc-load-inner" style={{ minWidth: hasLoad ? 776 : 620 /* + the injury column (#1008) */ }}>
 
-          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, alignItems: 'center', minHeight: 36, margin: '0 -14px', padding: '0 16px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
+          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap, alignItems: 'center', minHeight: 36, margin: '0 -14px', padding: '0 16px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
             {/* THE HEADER STANDS OVER ITS COLUMN (27.9 #373, Ohad: "not ocd
                 order"): '#' is centred over the jersey badges, like the numbers
                 in them - measured 5px left of them. */}
@@ -5666,14 +5686,14 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
             {hasLoad ? <SortHeader k="trend" sort={sort} label={tr('14-day')} style={{ textAlign: 'end' }} /> : <div />}
           </div>
           {/* the phone's header: the columns a restacked row still shows */}
-          <SortBar sort={sort} className="bhbc-load-sortbar" cols={headCols.filter(([k]) => k !== 'ready' && k !== 'acute')}
+          <SortBar sort={sort} className="bhbc-load-sortbar" cols={headCols.filter(([k]) => k !== 'ready' && k !== 'acute' && k !== 'inj')}
             style={{ alignItems: 'center', minHeight: 36, margin: '0 -14px', padding: '0 16px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
           {sort.rows.map(({ t, acwr, series, readiness, avail }) => {
             const medFloor = activeInjuries(medical || {}, t.id)
               .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
             const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
             return (
-              <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, alignItems: 'center', padding: '8px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
+              <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: grid, gap, alignItems: 'center', padding: '8px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
                   <PlayerName data-name="" name={t.name} style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx }} />
@@ -5723,6 +5743,22 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     );
                   })()}
                 </div>
+                {(() => {
+                  const all = activeInjuries(medical || {}, t.id);
+                  const inj = worstInjury(medical, t.id);
+                  if (!inj) return <div data-lbl="Injury" className="bhbc-inj-col" style={{ fontFamily: FN, fontSize: 12, color: C.cardBd }}>—</div>;
+                  const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
+                  const playing = inj.status === 'available';   // played through: grey, so it does not shout like an out
+                  const meta = [inj.type && !/^other$/i.test(inj.type) ? tr(inj.type) : null, days != null ? daysFor(days) : null].filter(Boolean).join(' · ');
+                  return (
+                    <div data-lbl="Injury" className="bhbc-inj-col" style={{ minWidth: 0 }}>
+                      <div data-inj-part="" style={{ fontFamily: FN, fontSize: 12, fontWeight: playing ? 700 : 800, letterSpacing: '0.03em', lineHeight: '16px', color: playing ? C.tm : medText(inj.status), overflowWrap: 'normal', wordBreak: 'keep-all' }}>
+                        {tr((inj.bodyPart || '').split('/')[0].trim())}<span style={{ whiteSpace: 'nowrap' }}>{sideTag(inj.side, tr)}</span>{all.length > 1 && <span style={{ color: C.tm, fontWeight: 700 }}> +{all.length - 1}</span>}
+                      </div>
+                      {meta && <div data-inj-meta="" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.03em' /* 'TENDINOPATHY' fits the 768 column (0.06em ran 3px over) */, textTransform: 'uppercase', lineHeight: '14px', marginTop: 2, color: C.tm, overflowWrap: 'normal', wordBreak: 'keep-all' }}>{meta}</div>}
+                    </div>
+                  );
+                })()}
                 {/* What the MEDICAL record forces, so the cell can say so. The
                     board renders max(dayAvail, medFloor): a coach can make today
                     worse than the medical fact but never better, or a card would
@@ -5764,10 +5800,10 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                 <div data-lbl="Availability">
                   <AvailSelect avail={avail} floor={medFloor} onPick={cycleAvail ? (code) => cycleAvail(t.id, code) : null} />
                 </div>
-                {hasRead && (<div data-lbl="Readiness" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                {hasRead && (<div data-lbl="Readiness" title={tab ? glueSeps(tr(readiness.level === 'unknown' ? 'no check-in' : readiness.headline)) : undefined} style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: rc, flexShrink: 0 }} />
                   {typeof readiness.loadAdjustPct === 'number' && readiness.loadAdjustPct !== 0 && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, color: rc, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{readiness.loadAdjustPct > 0 ? '+' : ''}{readiness.loadAdjustPct}%</span>}
-                  <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{glueSeps(tr(readiness.level === 'unknown' ? 'no check-in' : readiness.headline))}</span>
+                  {!tab && <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{glueSeps(tr(readiness.level === 'unknown' ? 'no check-in' : readiness.headline))}</span>}
                 </div>)}
                 <div data-lbl="actions" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
                   {hasLoad && <Sparkline series={series} />}
@@ -6224,6 +6260,14 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   // "Show more" never moves the columns.
   const anySc = useMemo(() => past.some((f) => { const d = detailFor(f); return d.scMinutes > 0 || d.wuCount > 0; }), [past, detailFor]);
   const listHas = useMemo(() => ({ wu: past.some((f) => detailFor(f).wuCount > 0), sc: past.some((f) => detailFor(f).scMinutes > 0) }), [past, detailFor]);
+  // #1009 (Ohad: "the 60/120min ... not aligned"): the kind column is as wide as the widest kind on the list, so every
+  // row's minutes start on one x ("120 MIN" under "SHOOTAROUND · 60 MIN" started 140px apart)
+  const ppRef = useRef(null);
+  useLayoutEffect(() => {
+    const el = ppRef.current; if (!el) return;
+    let w = 0; el.querySelectorAll('.pp-kind').forEach((n) => { const r = document.createRange(); r.selectNodeContents(n); w = Math.max(w, r.getBoundingClientRect().width); });
+    el.style.setProperty('--pp-kind-w', `${Math.ceil(w)}px`);
+  });
 
   if (!past.length) return null;
 
@@ -6233,7 +6277,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
       {/* The first row's top space = every row's (26.9, Ohad: "too many vertical
           space between past practices and thu 25 sep"): the strip's 12px gap is
           cancelled so the row's own 9px is the only space above it. */}
-      <div style={{ display: 'flex', flexDirection: 'column', marginTop: -12 }}>
+      <div ref={ppRef} style={{ display: 'flex', flexDirection: 'column', marginTop: -12 }}>
         {past.slice(0, limit).map((f) => {
           const key = `${f.date}|${f.start || ''}`;
           const d = detailFor(f);
@@ -6264,7 +6308,8 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                     slot · count · chevron on every row, so a row with S&C lays out
                     exactly like one without. The list is Past PRACTICES, so a
                     practice row shows its minutes only; any other kind names itself. */}
-                <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, flex: '1 1 auto', minWidth: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline' }}>
+                <span className="pp-kind" style={{ color: C.tm, fontFamily: FB, fontSize: 12, width: 'var(--pp-kind-w, auto)', flexShrink: 0, whiteSpace: 'nowrap' }}><SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} /></span>
+                <span className="pp-min" style={{ color: C.tm, fontFamily: FB, fontSize: 12, flex: '1 1 auto', minWidth: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline' }}>
                   {/* THE DURATION IS ONE TOKEN, NOT TWO WORDS THAT MAY PART.
                       Measured 19.9 at 390 in Hebrew: this column is the one that
                       gives way, and every past-practice row broke "120 דק׳" in
@@ -6273,16 +6318,15 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                       not. */}
                   {/* the kind word gives way to its short form when the row is
                       narrow (SegWord measures), the way the month cells do */}
-                  {f.type !== 'practice' ? <SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} /> : null}
-                  {f.minutes ? <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{f.type !== 'practice' ? '\u00A0·\u00A0' : null}{f.minutes}<span className="min-unit">{' ' + fxLabelFor('__min', 'min')}</span><span className="min-tick">′</span></span> : null}
+                  {f.minutes ? <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{f.minutes}<span className="min-unit">{' ' + fxLabelFor('__min', 'min')}</span><span className="min-tick">′</span></span> : null}
                   {densityOf(f) ? <span style={{ flexShrink: 0 }}>{'\u00A0·\u00A0'}<DensityBit f={f} /></span> : null}
                 </span>
                 {/* the S&C slot: on every row while the list has any S&C (empty where none ran), gone when it has none (anySc) */}
-                <span className="pp-sc-slot" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 'var(--past-sc-w)', flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? undefined : 'none' }}>
+                <span className="pp-sc-slot" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 'var(--past-sc-w)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? 'grid' : 'none', gridTemplateColumns: listHas.wu ? '8px max-content' : 'max-content', columnGap: 6, justifyContent: 'start', alignItems: 'center' /* #1009: the warm-up square and the S&C each own a cell, so both start on one x on every row */ }}>
                   {/* the warm-up's purple square leads the slot (#646): it is its own thing, not S&C,
                       and a word for it would not fit a 390 row beside 'S&C 12′' */}
-                  {d.wuCount > 0 ? <span role="img" aria-label={`${tr('Warm-up')} ${WARMUP_MIN} ${tr('min')}`} title={`${tr('Warm-up')} · ${WARMUP_MIN} ${tr('min')}`} style={{ display: 'inline-block', width: 8, height: 8, background: WARMUP_COLOR, marginInlineEnd: d.scMinutes > 0 ? 6 : 0, verticalAlign: 'baseline' /* #735: 'middle' hung it 1.3px under the caps' baseline; on the baseline its 8px is the caps' height */ }} /> : null}
-                  {d.scMinutes > 0 ? <><span aria-hidden style={{ display: 'inline-block', width: 8, height: 8, background: SC_COLOR, marginInlineEnd: 4, verticalAlign: 'baseline' }} /><span className="pp-sc-word">{tr('S&C')} </span><MinTok n={d.scMinutes} /></> : null}
+                  {listHas.wu ? (d.wuCount > 0 ? <span role="img" aria-label={`${tr('Warm-up')} ${WARMUP_MIN} ${tr('min')}`} title={`${tr('Warm-up')} · ${WARMUP_MIN} ${tr('min')}`} style={{ display: 'inline-block', width: 8, height: 8, background: WARMUP_COLOR, verticalAlign: 'baseline' /* #735: 'middle' hung it 1.3px under the caps' baseline; on the baseline its 8px is the caps' height */ }} /> : <span />) : null}
+                  {d.scMinutes > 0 ? <span><span aria-hidden style={{ display: 'inline-block', width: 8, height: 8, background: SC_COLOR, marginInlineEnd: 4, verticalAlign: 'baseline' }} /><span className="pp-sc-word">{tr('S&C')} </span><MinTok n={d.scMinutes} /></span> : <span />}
                 </span>
                 {/* The two numbers a head coach actually asks for. */}
                 {/* THE WHOLE SQUAD OUT IS NOT A 0/10 PRACTICE (#305 B8) - on a
@@ -7179,21 +7223,31 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
 // then competition · round · venue · time) and ONE end column - the result as
 // coloured text, HOME/AWAY, or the minutes still to add. Rows sit between plain
 // rules and everything in them is centred between the two.
-function GameRow({ date, title, detail, end, onClick, dataKey }) {
+// COLUMNS FROM 761 (24.10 #1011, Ohad on the tablet: "Design can be much better"): the venue and the time ran inside one
+// sentence under the matchup while the middle of a wide row stood empty, and HOME / AWAY or the score sat wherever its
+// own width ended. Now venue and time are columns and the end is a fixed column, so every section of a list lines up;
+// a phone keeps the one detail line.
+const GAME_WIDE = '56px minmax(0, 1.2fr) minmax(0, 1fr) 72px 112px';
+function GameRow({ date, title, detail, venue, time, end, onClick, dataKey }) {
   const clickable = !!onClick;
+  const wide = useMQ('(min-width: 761px)');
+  const det = wide ? detail : [detail, venue, time].filter(Boolean).join(' · ');
+  const cell = { fontFamily: FN, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: C.tm, lineHeight: 1.3, minWidth: 0 };
   return (
     <div onClick={onClick || undefined} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined} data-game-row={dataKey || ''}
       onKeyDown={clickable ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }) : undefined}
       className={clickable ? 'bhbc-row bhbc-game-row' : 'bhbc-game-row'}
-      style={{ display: 'grid', gridTemplateColumns: '52px minmax(0, 1fr) auto', columnGap: 14, alignItems: 'center', minHeight: 54, padding: '9px 0', boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}`, cursor: clickable ? 'pointer' : 'default' }}>
-      <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', textAlign: 'start' }}>{date}</span>
+      style={{ display: 'grid', gridTemplateColumns: wide ? GAME_WIDE : '52px minmax(0, 1fr) auto', columnGap: wide ? 18 : 14, alignItems: 'center', minHeight: 54, padding: '9px 0', boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}`, cursor: clickable ? 'pointer' : 'default' }}>
+      <span dir="ltr" style={{ justifySelf: 'start' /* the cell's start in either language (#1011: an LTR date in an RTL row started 16px apart) */, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', textAlign: 'start' }}>{date}</span>
       <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
         <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tx, overflowWrap: 'break-word', lineHeight: 1.2 }}>{title}</span>
         {/* segments, not one text run: a Hebrew competition beside an English
             venue let the bidi algorithm pull two separators together
             ("ליגת האלופות · · BADALONA") - each segment is its own box */}
-        {detail ? <Segmented text={detail} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: C.tm, lineHeight: 1.25 }} /> : null}
+        {det ? <Segmented text={det} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: C.tm, lineHeight: 1.25 }} /> : null}
       </span>
+      {wide && <span data-game-venue="" style={{ ...cell, overflowWrap: 'break-word' }}>{venue || ''}</span>}
+      {wide && <span data-game-time="" dir="auto" style={{ ...cell, justifySelf: 'start', fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{time || ''}</span>}
       <span style={{ justifySelf: 'end', display: 'inline-flex', alignItems: 'center', position: 'relative', top: -1 /* #735: the score's baseline rode 1.3 under the title block's centre */ }}>{end}</span>
     </div>
   );
@@ -7257,7 +7311,7 @@ function ResultsList({ games: allGames0, bhbcOnly, fixtures = [], onPick = null,
             const { bhHome, opp } = side(g);
             const time = g.timeTBD ? tr('TBD') : g.time;
             return <GameRow key={i} dataKey={g.date} date={g.date ? ddmm(g.date) : ''} title={`${bhHome ? tr('vs') : '@'} ${opp}`}
-              detail={[tr(g.comp), g.venue && restSay(g.venue), time].filter(Boolean).join(' · ')}
+              detail={tr(g.comp)} venue={g.venue ? restSay(g.venue) : ''} time={time || ''}
               end={g.homeKnown === false ? null : HA_TEXT(bhHome, tr)} />;
           })}
         </GameSection>
@@ -7271,7 +7325,7 @@ function ResultsList({ games: allGames0, bhbcOnly, fixtures = [], onPick = null,
             const drew = us === them;
             const fx = fxOf(g);
             return <GameRow key={i} dataKey={g.date} date={g.date ? ddmm(g.date) : ''} title={`${bhHome ? tr('vs') : '@'} ${opp}`}
-              detail={[roundOf(g), g.venue && restSay(g.venue)].filter(Boolean).join(' · ') /* the title's vs / @ says home or away (#972: 'AWAY' again at the line's end wrapped alone on a phone) */}
+              detail={roundOf(g) || ''} venue={g.venue ? restSay(g.venue) : ''} /* the title's vs / @ says home or away (#972: 'AWAY' again at the line's end wrapped alone on a phone) */
               onClick={fx ? () => onPick(fx) : null}
               end={(
                 <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, fontFamily: FN, fontVariantNumeric: 'tabular-nums' }}>
@@ -7840,7 +7894,7 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick, roster = [], leag
             <div key={k} data-game={g.date}>
               <GameRow dataKey={g.date} date={ddmm(g.date)} onClick={lines.length ? () => setOpenKey(open ? '' : k) : () => onPick(g)}
                 title={g.opponent ? `${g.home === false ? '@' : tr('vs')} ${g.opponent}` : tr(FX_LABEL[g.type] || 'Game')}
-                detail={[comp, res && `${res.win ? tr('W') : tr('L')} ${res.text}`, lines.length ? `${lines.length} ${tr('played')}` : null].filter(Boolean).join(' · ')}
+                detail={comp} venue={res ? `${res.win ? tr('W') : tr('L')} ${res.text}` : ''} time={lines.length ? `${lines.length} ${tr('played')}` : ''}
                 end={lines.length ? (
                   <span aria-hidden="true" style={{ display: 'inline-flex', width: 'var(--btn-h)', height: 'var(--btn-h)', alignItems: 'center', justifyContent: 'center', color: C.tm, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease' }}><CaretGlyph /></span>
                 ) : (
@@ -8041,9 +8095,16 @@ const READY_EN = { poor: 'poor', ok: 'ok', good: 'good', great: 'great', low: 'l
 // seat. 7 columns from 1240px; under it each row is two lines (the sort bar stands in for the header); a phone puts the
 // actions on a third.
 const RH_COLS = 'minmax(170px, 1.3fr) 124px minmax(232px, 1.5fr) 80px 80px minmax(120px, 1fr) 240px';
+// A TABLET IS A TABLE TOO (24.10 #1010, Ohad on the tablet: "Horrible design. Redo this asap"): under 1240 every row
+// was a two-line block with a label on every cell - 190px a player, mostly 'LAST CHECK-IN / -'. From 621 to 1239 it is
+// the desktop's table: one line a player under the real header, every column on one x, and ONE action (the medical
+// record, or Log lift for a seat without medical) - Log lift lives on the player's card and the Lifts tab.
+const RH_TAB = 'minmax(118px, 1.2fr) 104px minmax(0, 1fr) 64px 64px minmax(0, 0.9fr) 96px';   // 118: 'WHITFIELD' + its jersey never clips (measured 800)
 function RosterHealthCard({ roster, medical, loads = {}, canMedical, onOpen, onLog, onEdit, onReport }) {
   const tr = useT();
   const he = useHe();
+  const tablet = useMQ('(min-width: 621px) and (max-width: 1239px)');
+  const cols = tablet ? RH_TAB : RH_COLS;
   const today = todayISO();
   const SEV = { out: 0, 'non-contact': 1, limited: 2, available: 3 };
   const AMBER = 'var(--bhbc-amber-text, #E0A73A)';
@@ -8079,15 +8140,15 @@ function RosterHealthCard({ roster, medical, loads = {}, canMedical, onOpen, onL
     <Card padding={14} leftStripe={NAVY} header={secTitle('Roster Health')}
       headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{rows.filter((x) => x.rd === today).length}/{rows.length} {tr('checked in today')}</span>}>
       <div>
-        <div className="bhbc-rh2-head" style={{ display: 'grid', gridTemplateColumns: RH_COLS, gap: 12, alignItems: 'center', minHeight: 36, padding: '0 14px', margin: '0 -14px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
-          {head.map(([key, h], i) => <SortHeader key={key} k={key} sort={sort} label={h} style={{ ...th, ...(i === 0 ? { paddingInlineStart: 31 } : null) }} />)}
+        <div className="bhbc-rh2-head" style={{ display: 'grid', gridTemplateColumns: cols, gap: tablet ? 10 : 12, alignItems: 'center', minHeight: 36, padding: '0 14px', margin: '0 -14px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
+          {head.map(([key, h], i) => <SortHeader key={key} k={key} sort={sort} label={tablet && h.includes(' · ') ? <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.3 }}>{h.split(' · ').map((x) => <span key={x}>{x}</span>)}</span> : h} style={{ ...th, ...(i === 0 ? { paddingInlineStart: 31 } : null) }} /* a tablet's 64px OUT / MIN columns: the word over its period, two lines by design ('היעדרות · 28 יום' ran into the next header) (#1010) */ />)}
           <div />
         </div>
         <SortBar sort={sort} className="bhbc-rh2-sortbar" cols={[['name', tr('Athlete')], ['status', tr('Status')], ['checkin', tr('Last check-in')], ['out', tr('out')]]}
           style={{ flexWrap: 'nowrap', justifyContent: 'space-between', columnGap: 8, alignItems: 'center', minHeight: 36, padding: '0 16px', margin: '0 -14px', background: 'var(--c-sf2)', ...th, borderBottom: `1px solid ${C.cardBd}` }} />
         <NameScopeProvider>
           {sort.rows.map(({ t, act, status, hist, last, rd, r, pain, out28, min7 }) => (
-            <div key={t.id} className="bhbc-row bhbc-rh2-row" style={{ display: 'grid', gridTemplateColumns: RH_COLS, gap: 12, alignItems: 'center', minHeight: 56, padding: '8px 0', boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}` }}>
+            <div key={t.id} className="bhbc-row bhbc-rh2-row" style={{ display: 'grid', gridTemplateColumns: cols, gap: tablet ? 10 : 12, alignItems: 'center', minHeight: 56, padding: '8px 0', boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, cursor: 'pointer' }} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}>
                 <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                 <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
@@ -8095,36 +8156,37 @@ function RosterHealthCard({ roster, medical, loads = {}, canMedical, onOpen, onL
               <StatusWord status={status} />
               <div className="rh2-meta" style={{ display: 'contents' }}>
                 {/* CHECK-IN: his own words from the last 3 days - your pain rule colours it (0-3 fine, 4-5 modify, 6+ stop) */}
-                <div data-rh-checkin="" style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 0, lineHeight: 1.5, minHeight: '3em' /* two lines on every row, a '—' too */ }}>
+                <div data-rh-checkin="" style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 0, lineHeight: 1.5, minHeight: tablet ? 0 : '3em' /* two lines on every row, a '—' too (desktop) */, overflow: 'hidden' }}>
                   <span className="rh2-k" style={k}>{tr('Last check-in')}</span>
                   {/* TWO FIXED LINES, every row the same: pain (and the day, when it is not today), then sleep · energy -
                       one running line broke wherever the column ran out ("ENERGY / GOOD") */}
-                  {r ? <span className="rh2-ci" style={{ display: 'inline-flex', flexDirection: 'column', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                  {r ? <span className="rh2-ci" style={{ display: 'inline-flex', flexDirection: 'column', verticalAlign: 'top', whiteSpace: 'nowrap', maxWidth: '100%' }}>
                     <span>
                       {pain != null ? <span style={{ fontWeight: pain >= 4 ? 800 : 700, color: pain >= 6 ? '#DE4E3B' : pain >= 4 ? AMBER : C.tx }}>{tr('pain')} {pain}</span> : <span style={{ color: C.td }}>{tr('pain')} —</span>}
                       {rd !== today && <span style={{ color: C.td }}>{' · '}{monDay(rd)}</span>}
                     </span>
                     <span>
                       {lc(tr('Sleep'))} <span style={{ fontWeight: 700, color: r.sleep === 'poor' ? AMBER : C.tx }}>{r.sleep ? word('sleep', r.sleep) : '—'}</span>
-                      {' · '}{lc(tr('Energy'))} <span style={{ fontWeight: 700, color: r.energy === 'low' ? AMBER : C.tx }}>{r.energy ? word('energy', r.energy) : '—'}</span>
+                      {!tablet && <>{' · '}{lc(tr('Energy'))} <span style={{ fontWeight: 700, color: r.energy === 'low' ? AMBER : C.tx }}>{r.energy ? word('energy', r.energy) : '—'}</span></>}
                     </span>
-                  </span> : <span className="rh2-ci" style={{ display: 'inline-flex', flexDirection: 'column', verticalAlign: 'top' }}><span style={{ color: C.td }}>—</span><span>{' '}</span></span>}
+                    {tablet && <span>{lc(tr('Energy'))} <span style={{ fontWeight: 700, color: r.energy === 'low' ? AMBER : C.tx }}>{r.energy ? word('energy', r.energy) : '—'}</span></span>}
+                  </span> : <span className="rh2-ci" style={{ display: 'inline-flex', flexDirection: 'column', verticalAlign: 'top' }}><span style={{ color: C.td }}>—</span>{!tablet && <span>{' '}</span>}</span>}
                 </div>
                 <div data-rh-out="" style={{ fontFamily: FN, fontSize: 12, fontWeight: out28 ? 800 : 400, color: out28 ? C.tx : C.td, fontVariantNumeric: 'tabular-nums' }}><span className="rh2-k" style={k}>{tr('Out · 28d')}</span>{out28}</div>
                 <div data-rh-min="" style={{ fontFamily: FN, fontSize: 12, color: min7 ? C.tx : C.td, fontVariantNumeric: 'tabular-nums' }}><span className="rh2-k" style={k}>{tr('Min · 7d')}</span>{min7 ? <MinTok n={min7} /> : '0'}</div>
                 <div data-rh-hist="" style={{ fontFamily: FN, fontSize: 11, lineHeight: 1.5, color: hist ? C.tx : C.td, minWidth: 0 }}><span className="rh2-k" style={k}>{tr('History')}</span>
                   {/* two lines, always: the count, then the last body part (a blank line when there is none) */}
                   <span style={{ display: 'block', whiteSpace: 'nowrap' }}>{hist ? (hist === 1 ? tr('1 injury') : `${hist} ${tr('injuries')}`) : '—'}</span>
-                  <span style={{ display: 'block', whiteSpace: 'nowrap', color: C.tm }}>{hist && last && last.bodyPart ? tr(String(last.bodyPart).split('/')[0].trim()) : '\u00a0'}</span>
+                  {(!tablet || !!(hist && last && last.bodyPart)) && <span style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: C.tm }}>{hist && last && last.bodyPart ? tr(String(last.bodyPart).split('/')[0].trim()) : '\u00a0'}</span>}
                 </div>
               </div>
               <div className="rh2-act">
                 {onLog || canMedical ? (
-                  <JoinedButtons className="bhbc-rh-actions" style={{ width: 240, flexShrink: 0 }} items={[
-                    onLog && { label: tr('Log lift'), title: tr('Log a lift for this athlete'), onClick: () => onLog(t.id) },
+                  <JoinedButtons className="bhbc-rh-actions" style={{ width: tablet ? 96 : 240, flexShrink: 0 }} items={[
+                    onLog && !(tablet && canMedical) && { label: tr('Log lift'), title: tr('Log a lift for this athlete'), onClick: () => onLog(t.id) },
                     canMedical && { label: act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report'), onClick: () => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id)) },
                   ]} />
-                ) : <span className="bhbc-rh-actions" style={{ width: 240, flexShrink: 0 }} />}
+                ) : <span className="bhbc-rh-actions" style={{ width: tablet ? 96 : 240, flexShrink: 0 }} />}
               </div>
             </div>
           ))}
@@ -8264,7 +8326,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
             <div>
               <NameScopeProvider>
               {past.map(({ t, inj }, pi) => (
-                <div key={t.id + inj.id} className="bhbc-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
+                <div key={t.id + inj.id} className="bhbc-row bhbc-prev-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
                   role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
                   onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined}
                   // ONE ROW GRAMMAR (5.10 #573, Ohad: "bad design for each box"): a
@@ -8277,9 +8339,10 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   style={{ display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr) auto auto', columnGap: 12, rowGap: 3, alignItems: 'center', padding: pi === past.length - 1 ? '11px 2px 1px' : '11px 2px 12px' /* the name's caps 15 under the line above, the injury line 15 over the rule (#735 band probe; 13 / 10 measured 17 / 13); the last row sits on the card's own 14 */, borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <span style={{ textAlign: 'end', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
-                  <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inj.onsetDate ? (() => { const d = fmtNumericDate(inj.onsetDate); if (!/^\d\d\/\d\d\/\d{4}$/.test(d)) return d; return <>{d.slice(0, -4)}<span className="yr-cent">{d.slice(-4, -2)}</span>{d.slice(-2)}</>; })() : ''}</span>
-                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', whiteSpace: 'nowrap' }}>{tr('Cleared')}</span>
-                  <span style={{ gridColumn: '2 / -1', fontFamily: FB, fontSize: 12, lineHeight: '14px' /* the '·' pulled a fallback font with an 18px line: rows with a separator stood 4px taller (#735) */, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join('\u00a0· ')}</span>
+                  {/* #1009 (Ohad: "On cleared and the date it's not aligned vertically. Same row"): both span the name AND the injury line, so they sit on the row's centre */}
+                  <span dir="ltr" style={{ gridColumn: 3, gridRow: '1 / span 2', alignSelf: 'center', fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inj.onsetDate ? (() => { const d = fmtNumericDate(inj.onsetDate); if (!/^\d\d\/\d\d\/\d{4}$/.test(d)) return d; return <>{d.slice(0, -4)}<span className="yr-cent">{d.slice(-4, -2)}</span>{d.slice(-2)}</>; })() : ''}</span>
+                  <span style={{ gridColumn: 4, gridRow: '1 / span 2', alignSelf: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', whiteSpace: 'nowrap', minWidth: 72, textAlign: 'end' }}>{tr('Cleared')}</span>
+                  <span style={{ gridColumn: 2, gridRow: 2, fontFamily: FB, fontSize: 12, lineHeight: '14px' /* the '·' pulled a fallback font with an 18px line: rows with a separator stood 4px taller (#735) */, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join('\u00a0· ')}</span>
                 </div>
               ))}
               </NameScopeProvider>
