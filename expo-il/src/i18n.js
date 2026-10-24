@@ -119,7 +119,7 @@ const STRINGS = {
   'inside.h2':           { en: 'Your phone counts the reps. You focus on the lift.', he: 'הטלפון סופר חזרות. אתה מתרכז בהרמה.' },
   'inside.body': {
     en: 'Film any set with your phone. The portal runs pose detection on the clip, counts the reps automatically, and lets you compare the new attempt with your last set at the same weight — same engine I use with the athletes I coach, no manual stopwatch.',
-    he: 'צלם כל סט בטלפון. הפורטל מריץ זיהוי תנוחה על הקליפ, סופר חזרות אוטומטית, ונותן להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לספור ידנית.',
+    he: 'צלם כל סט בטלפון. הפורטל מריץ זיהוי תנוחה על הסרטון, סופר חזרות אוטומטית, ונותן להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לספור ידנית.',
   },
 
   // Phone 1 — pose landmarker
@@ -162,7 +162,7 @@ const STRINGS = {
   'inside.cmp.h':        { en: 'Side-by-side check',he: 'השוואה צד לצד' },
   'inside.cmp.d': {
     en: 'Every clip slots into your library by exercise + weight. Two taps to see today against your last attempt at the same load — ROM, tempo, depth, all visible.',
-    he: 'כל קליפ נכנס לספרייה לפי תרגיל ומשקל. שתי לחיצות ואתה רואה את הסט של היום מול הסט הקודם באותו משקל. ROM, טמפו, עומק — רואים הכל.',
+    he: 'כל סרטון נכנס לספרייה לפי תרגיל ומשקל. שתי לחיצות ואתה רואה את הסט של היום מול הסט הקודם באותו משקל. ROM, טמפו, עומק — רואים הכל.',
   },
   'inside.cmp.last.t':   { en: 'LAST · 90 KG',      he: 'קודם · 90 ק״ג' },
   'inside.cmp.last.s':   { en: '4 reps · grindy #4',he: '4 חזרות · הרביעית כבדה' },
@@ -533,13 +533,13 @@ const STRINGS = {
   'demo.pose.h':      { en: 'Pose detection · interactive', he: 'זיהוי תנוחה · אינטראקטיבי' },
   'demo.pose.body': {
     en: 'Drag the slider to scrub through the squat — knee + hip angles update in real time, same as the portal does on a real clip.',
-    he: 'תגרור את הסליידר כדי לעבור לאורך הסקוואט — זוויות הברך והירך מתעדכנות בזמן אמת, בדיוק כמו שהפורטל עושה על קליפ אמיתי.',
+    he: 'תגרור את הסליידר כדי לעבור לאורך הסקוואט — זוויות הברך והירך מתעדכנות בזמן אמת, בדיוק כמו שהפורטל עושה על סרטון אמיתי.',
   },
   'demo.pose.scrub':  { en: 'SQUAT PHASE',          he: 'שלב הסקוואט' },
   'demo.shot.h':      { en: 'Jump shot · interactive', he: 'זריקה · אינטראקטיבי' },
   'demo.shot.body': {
     en: 'Drag through the shot — the phase, the elbow angle and the ball all move together, the same way the analyzer walks a real clip frame by frame.',
-    he: 'תגרור לאורך הזריקה — השלב, זווית המרפק והכדור זזים ביחד, בדיוק כמו שהניתוח עובר על קליפ אמיתי פריים אחרי פריים.',
+    he: 'תגרור לאורך הזריקה — השלב, זווית המרפק והכדור זזים ביחד, בדיוק כמו שהניתוח עובר על סרטון אמיתי פריים אחרי פריים.',
   },
   'demo.shot.scrub':  { en: 'SHOT PHASE',           he: 'שלב הזריקה' },
   'demo.rep.h':       { en: 'Rep counter · interactive', he: 'ספירת חזרות · אינטראקטיבי' },

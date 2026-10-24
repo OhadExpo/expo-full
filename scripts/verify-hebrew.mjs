@@ -96,6 +96,12 @@ const RULES = [
     fix: 'הכל',
   },
   {
+    id: 'word-his-video',
+    why: 'a video is סרטון in his writing - coaching sheets + cues 81 : 0, his chat 29 : 0 (#825, 24.10); the apps had 101 קליפ, an English loan he never writes',
+    test: /(?<![֐-׿])(?:[והבלמש]|מה|שה|וה|לה|בה)?קליפ(?:ים)?(?![֐-׿])/g,
+    fix: 'סרטון / סרטונים',
+  },
+  {
     id: 'sign-beside-number',
     why: 'a + / ± / ° beside a number inside a Hebrew string is bidi-neutral and jumps sides in RTL (skill: "say it in words"); shipped as +5 נקודות, ±6°, 87°, 6+ until 17.9',
     test: /(?<![A-Za-z])[+±](?:\$\{|\d)|(?:\d|\})°|(?:\d|\})\+(?![\d$])/g,

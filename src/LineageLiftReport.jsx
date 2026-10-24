@@ -52,7 +52,7 @@ function SeriesChart({ pts, color, symmetric, fmtY, header }) {
   const gid = useMemo(() => `llrGrad-${(_gidSeq += 1)}`, []);
   const he = useHe();
   if (!pts || pts.length < 3) {
-    return <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.06em', margin: '4px 0 12px' }}>{L(he, 'No clean trace in this clip.', 'אין מסלול נקי בקליפ הזה.')}</div>;
+    return <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.06em', margin: '4px 0 12px' }}>{L(he, 'No clean trace in this clip.', 'אין מסלול נקי בסרטון הזה.')}</div>;
   }
   const W = 320, GH = 118, padT = 14, padB = 8, padX = 6, plotH = GH - padT - padB;
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);

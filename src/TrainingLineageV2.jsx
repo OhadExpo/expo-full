@@ -152,7 +152,7 @@ function NoReportNote() {
   const he = useHe();
   return (
     <div style={{ marginTop: 10, border: `1px dashed ${C.bd}`, background: C.sf2, padding: '10px 12px', color: C.tm, fontSize: 11.5, lineHeight: 1.5 }}>
-      {L(he, 'The full per-rep report populates after this lift\'s latest clip is re-analysed — it runs automatically the next time this page is open. The trend above is live now.', 'הדוח המלא לכל חזרה יופיע אחרי שהקליפ האחרון של התרגיל ינותח מחדש — זה קורה אוטומטית בפעם הבאה שהעמוד ייפתח. המגמה למעלה כבר מעודכנת.')}
+      {L(he, 'The full per-rep report populates after this lift\'s latest clip is re-analysed — it runs automatically the next time this page is open. The trend above is live now.', 'הדוח המלא לכל חזרה יופיע אחרי שהסרטון האחרון של התרגיל ינותח מחדש — זה קורה אוטומטית בפעם הבאה שהעמוד ייפתח. המגמה למעלה כבר מעודכנת.')}
     </div>
   );
 }
@@ -831,9 +831,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
               {autoPose.running
-                ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>{`${L(he, 'Auto-analysing clips…', 'מנתח קליפים…')} ${autoPose.done}/${autoPose.total}`}</b><span>{L(he, 'Bar speed is read from every uploaded video automatically — no logging needed. This fills in as it goes.', 'מהירות המוט נמדדת אוטומטית מכל וידאו שעולה — בלי רישום. זה מתמלא תוך כדי.')}</span></>
+                ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>{`${L(he, 'Auto-analysing clips…', 'מנתח סרטונים…')} ${autoPose.done}/${autoPose.total}`}</b><span>{L(he, 'Bar speed is read from every uploaded video automatically — no logging needed. This fills in as it goes.', 'מהירות המוט נמדדת אוטומטית מכל וידאו שעולה — בלי רישום. זה מתמלא תוך כדי.')}</span></>
                 : <><b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>{L(he, 'No clean bar-speed read yet.', 'עוד אין מדידת מהירות מוט נקייה.')}</b><span>{he
-                  ? <>כל קליפ שעולה מנותח אוטומטית למהירות — אף אחד עוד לא צולם מהצד מספיק נקי בשביל מגמה. מהירות המוט יורדת <i>לפני</i> המשקל או ה־RPE; זה מדד עייפות שאף מתחרה במחיר הזה לא נותן.</>
+                  ? <>כל סרטון שעולה מנותח אוטומטית למהירות — אף אחד עוד לא צולם מהצד מספיק נקי בשביל מגמה. מהירות המוט יורדת <i>לפני</i> המשקל או ה־RPE; זה מדד עייפות שאף מתחרה במחיר הזה לא נותן.</>
                   : <>{'Every uploaded clip is auto-analysed for velocity — none is filmed side-on cleanly enough to trend yet. Bar speed drops '}<i>{'before'}</i>{' load or RPE; it\'s the fatigue read no competitor at this price offers.'}</>}</span></>}
             </div>
           )}
@@ -906,9 +906,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
               {autoPose.running
-                ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>{`${L(he, 'Auto-analysing clips…', 'מנתח קליפים…')} ${autoPose.done}/${autoPose.total}`}</b><span>{L(he, 'Left-vs-right joint travel is read from every uploaded video automatically — no logging needed.', 'תנועת המפרקים ימין מול שמאל נמדדת אוטומטית מכל וידאו שעולה — בלי רישום.')}</span></>
+                ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>{`${L(he, 'Auto-analysing clips…', 'מנתח סרטונים…')} ${autoPose.done}/${autoPose.total}`}</b><span>{L(he, 'Left-vs-right joint travel is read from every uploaded video automatically — no logging needed.', 'תנועת המפרקים ימין מול שמאל נמדדת אוטומטית מכל וידאו שעולה — בלי רישום.')}</span></>
                 : <><b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>{L(he, 'No symmetry read yet.', 'עוד אין מדידת סימטריה.')}</b><span>{he
-                  ? <>כל קליפ שעולה מנותח אוטומטית לתנועת ימין/שמאל — אף אחד עוד לא נקי מספיק בשביל מגמה. פער בין הצדדים יופיע כאן <i>לפני</i> שזה נהיה מתיחה; אף אחד במחיר הזה לא עוקב אחרי זה.</>
+                  ? <>כל סרטון שעולה מנותח אוטומטית לתנועת ימין/שמאל — אף אחד עוד לא נקי מספיק בשביל מגמה. פער בין הצדדים יופיע כאן <i>לפני</i> שזה נהיה מתיחה; אף אחד במחיר הזה לא עוקב אחרי זה.</>
                   : <>{'Every uploaded clip is auto-analysed for L/R joint travel — none clean enough to trend yet. A limb pulling away shows here '}<i>{'before'}</i>{' it\'s a tweak; nobody at this price trends it.'}</>}</span></>}
             </div>
           )}
