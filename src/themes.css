@@ -2483,6 +2483,10 @@ body[data-lang="he"] .nadlan-view, body[data-lang="he"] .nadlan-view *:not(svg):
   /* 13.10 #735: wrapped, the name's caps sat 10 under the frame and the VIEW tag 7 over it -> 8.5 / 8.5 */
   .em-sugg-btn { padding-top: 5.5px !important; padding-bottom: 8.5px !important; }
   .em-sugg-btn > .em-sugg-title { flex: 1 1 calc(100% - 24px) !important; }
+  /* #972 (Ohad: "not ocd, not aligned"): the second line's VIEW sat wherever its tag ended - now it holds the row's end,
+     the same x on every suggestion; the tag has the line's room, so it stays one line */
+  .em-sugg-btn > .em-sugg-tag { width: auto !important; }
+  .em-sugg-btn > .em-sugg-view { margin-inline-start: auto !important; }
 }
 
 /* THE REVIEW LIST'S RIGHT COLUMN (10.10 #649): REVIEW | DELETE and the strip's ATHLETE PAGE are one

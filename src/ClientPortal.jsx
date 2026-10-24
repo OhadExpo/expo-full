@@ -46,6 +46,7 @@ import { resolveStoredUrl } from './storageUrl';
 import { summarize as summarizeSet, isUsable as isUsableSetRead, setFrameBudget } from './setAnalysis';   // the athlete's own set read (5.10 #552); the pose engine itself is imported on tap
 import { useUrlSync, useUrlFlag } from './urlState';
 import VideoTrimSheet from './VideoTrimSheet';   // #970 the trimmer, before any clip uploads
+import { fastCut, fastCutAvailable } from './videoCutFast';   // #970 v2 WebCodecs: faster than real time, keeps the sound
 // the portal's pages in the URL, in the tabs' own words (#770)
 const PORTAL_PAGES = { prog: 'program', bwt: 'bodyweight', meal: 'meal-log', hist: 'history', pr: 'progress', msg: 'messages' };   // 16.10 #826: PRs grew into PROGRESS
 const PORTAL_KEY = { ...Object.fromEntries(Object.entries(PORTAL_PAGES).map(([k, w]) => [w, k])), prs: 'pr' };   // an old /prs link still opens it
@@ -1412,6 +1413,18 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     vid.onerror = () => { fail(new Error('Failed to load video')); };
   });
 
+  // ONE ENCODE (#970 v2): the WebCodecs fast cut first (hardware speed, the sound kept); any failure of it falls back to
+  // the real-time canvas encoder above - the clip is never lost to the fast path. A fast-path failure is remembered for
+  // this page so the next clip does not pay for it twice.
+  const fastFailedRef = useRef(false);
+  const encodeClip = async (file, onProgress, signal, opts = {}) => {
+    if (fastCutAvailable() && !fastFailedRef.current) {
+      try { return await fastCut(file, opts, onProgress, signal); }
+      catch (e) { if (signal && signal.aborted) throw e; fastFailedRef.current = true; console.warn('fast cut failed, real-time encoder:', e && e.message); }
+    }
+    return compressVideoChrome(file, onProgress, signal, opts);
+  };
+
   // Upload with real progress tracking via XMLHttpRequest
   // Supabase Storage REST API: POST raw body with Content-Type header.
   // URL/key sourced from src/supabase.js so there's a single
@@ -1555,10 +1568,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (localWrites) {
         const cutD = await askTrim(file);
         if (!cutD) return;
-        if (cutD.trimmed && canCompressVideo()) {
+        if (cutD.trimmed && (fastCutAvailable() || canCompressVideo())) {
           setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], has: true, videoUrl: URL.createObjectURL(file) + `#t=${cutD.start.toFixed(2)},${cutD.end.toFixed(2)}`, fileName: file.name, uploading: true, uploaded: false, phase: 'cut', compressProgress: 0 }; return n; });
           try {
-            const r = await compressVideoChrome(file, (pct) => setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], compressProgress: pct }; return n; }), null, { start: cutD.start, end: cutD.end });
+            const r = await encodeClip(file, (pct) => setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], compressProgress: pct }; return n; }), null, { start: cutD.start, end: cutD.end });
             const localUrl = URL.createObjectURL(r.blob);
             setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], has: true, videoUrl: localUrl, cloudUrl: null, fileName: file.name, uploading: false, uploaded: true, compressProgress: 100, uploadProgress: 100, uploadError: null, phase: null }; return n; });
             return;
@@ -1624,7 +1637,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // server-side — block it here with the real reason instead of letting the
     // upload die later as a cryptic "Load failed" (Ron, 2026-06-12).
     const SUPA_MAX_BYTES = 50 * 1024 * 1024;
-    const compressionAvailable = canCompressVideo();
+    const compressionAvailable = fastCutAvailable() || canCompressVideo();
     if (!compressionAvailable && file.size > SUPA_MAX_BYTES) {
       const sizeMB = Math.round(file.size / 1e6);
       toast(tt("Video is {n}MB — over the 50MB upload limit, and this browser can't compress it.\nRecord a shorter clip (~30 seconds) or lower the camera resolution in Settings > Camera.").replace('{n}', () => sizeMB), 'error', { ttl: 9000 });
@@ -1707,7 +1720,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           const ABS_MAX_MS = 240_000;    // absolute backstop (~120s clip + margin)
           try {
             const result = await Promise.race([
-              compressVideoChrome(file, pct => {
+              encodeClip(file, pct => {
                 lastTick = Date.now();
                 setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
               }, ctrl.signal, cOpts),

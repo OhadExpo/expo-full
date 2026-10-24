@@ -320,7 +320,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                           <span className="em-sugg-tag" style={{ flex: '0 0 auto', width: (String(tr(readLang(), s.why)).length > 20 ? 'min-content' : 'max-content') /* #894 (Ohad 22.10: 'osciliotary-wide should be hoz centered or on the same row'): ONE ROW for every tag up to 20 characters (deceleration<->reverse = 146px measured); only a longer one (ipsilateral<->contralateral, 174px) breaks at its arrow, CENTRED, so the name keeps its room (#651). min-content used to break every tag. */, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf], unicodeBidi: 'isolate', textAlign: 'center' }} dir="ltr" /* '+plate' / '-horizontal' are diff marks: their sign stays on the left in Hebrew */>{String(tr(readLang(), s.why)).split('↔').map((part, k, all) => <React.Fragment key={k}>{k ? <wbr /> : null}<span style={{ whiteSpace: 'nowrap' }}>{part}{k < all.length - 1 ? '↔' : ''}</span></React.Fragment>)}</span>
                           <span role="button" tabIndex={0} title={tt('Preview this library exercise — video, cues, classification')} onClick={(e) => { e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); }}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); } }}
-                            style={VIEW_TAG}>{tt('VIEW')}</span>
+                            className="em-sugg-view" style={VIEW_TAG}>{tt('VIEW')}</span>
                         </button>
                       );
                     })}

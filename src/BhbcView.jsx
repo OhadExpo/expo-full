@@ -7214,7 +7214,7 @@ function ResultsList({ games: allGames0, bhbcOnly, fixtures = [], onPick = null,
             const drew = us === them;
             const fx = fxOf(g);
             return <GameRow key={i} dataKey={g.date} date={g.date ? ddmm(g.date) : ''} title={`${bhHome ? tr('vs') : '@'} ${opp}`}
-              detail={[roundOf(g), g.venue && restSay(g.venue), bhHome ? tr('HOME') : tr('AWAY')].filter(Boolean).join(' · ')}
+              detail={[roundOf(g), g.venue && restSay(g.venue)].filter(Boolean).join(' · ') /* the title's vs / @ says home or away (#972: 'AWAY' again at the line's end wrapped alone on a phone) */}
               onClick={fx ? () => onPick(fx) : null}
               end={(
                 <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, fontFamily: FN, fontVariantNumeric: 'tabular-nums' }}>
