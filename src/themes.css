@@ -2552,4 +2552,4 @@ body[data-lang="he"] .nadlan-view, body[data-lang="he"] .nadlan-view *:not(svg):
 
 /* #975 SQUARE DAYS: an attendance / lifts row is as tall as its square day cells - the phone's tap floor for a
    role=button row (36 / 40px) is what stretched every 14px mark into a 24 x 36 box. The whole row stays the target. */
-.bhbc-zone .bhbc-sq-row { min-height: 24px !important; height: auto !important; }
+.bhbc-zone .bhbc-sq-row { min-height: 36px !important; height: auto !important; }   /* #977: the house row (a phone's 40px tap floor does not stretch it) */
