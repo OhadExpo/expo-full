@@ -98,7 +98,7 @@ const RULES = [
   {
     id: 'word-his-video',
     why: 'a video is סרטון in his writing - coaching sheets + cues 81 : 0, his chat 29 : 0 (#825, 24.10); the apps had 101 קליפ, an English loan he never writes',
-    test: /(?<![֐-׿])(?:[והבלמש]|מה|שה|וה|לה|בה)?קליפ(?:ים)?(?![֐-׿])/g,
+    test: /(?<![֐-׿])[והבלמשכ]{0,3}קליפ(?:ים)?(?![֐-׿])/g,   // any stacked prefix (ובקליפ, שבקליפ, כקליפ)
     fix: 'סרטון / סרטונים',
   },
   {

@@ -311,7 +311,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             letterSpacing: '0.04em', fontWeight: 700, flex: 1, minWidth: 0,
             lineHeight: 1.1,
           }}>
-            {targetIcon} {targetLabel}
+            {targetIcon} {tr(readLang(), targetLabel)}
           </span>
         )}
         <button onClick={onRemove} title={tr(readLang(), 'Remove')}
@@ -337,7 +337,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: PRIORITY_TONE[priority] || 'var(--c-tm)', border: `1px solid ${PRIORITY_TONE[priority] || 'var(--c-cardBd)'}`,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1, textTransform: 'uppercase',
-          }}>{priority}</span>
+          }}>{tr(readLang(), priority)}</span>
         )}
         {owner === 'shared' && (
           <span title={tt('Shared task — needs both Ohad & Yuval')} style={{
