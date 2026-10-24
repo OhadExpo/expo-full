@@ -39,6 +39,7 @@ export default function DemoTraineePortal({ onFilmSet = null } = {}) {
     // /demo/trainee — public marketing demo. Force dark while light-mode
     // rollout is gated to the coach app only.
     <div data-theme="dark" style={{ position: 'relative', minHeight: '100vh', background: C.bg }}>
+      {!isEmbed && <DemoSwitch current="athlete" he={readLang() === 'he'} />}
       {/* Demo banner — slim, fixed at the top, non-intrusive */}
       {!isEmbed && (
         <div style={{
@@ -52,7 +53,6 @@ export default function DemoTraineePortal({ onFilmSet = null } = {}) {
           {tt("DEMO · ATHLETE PORTAL · CHANGES DON'T PERSIST")}
         </div>
       )}
-      {!isEmbed && <DemoSwitch current="athlete" he={readLang() === 'he'} />}
       {/* localWrites: every setter below is this component's own useState, so a
           write cannot reach Supabase or a real trainee. The coach-side PREVIEW
           also runs ClientPortal in demoMode but with the REAL setters, which is

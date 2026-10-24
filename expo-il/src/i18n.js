@@ -35,6 +35,7 @@ const STRINGS = {
   'nav.how':             { en: 'HOW IT WORKS',   he: 'איך זה עובד' },
   'nav.faq':             { en: 'FAQ',            he: 'שאלות' },
   'nav.contact':         { en: 'CONTACT',        he: 'דבר איתי' },
+  'nav.teams':           { en: 'FOR CLUBS',      he: 'למועדונים' },   // #981: EXPO Teams, a link out from every page
   'nav.quiz':            { en: 'FIND MY PROGRAM', he: 'מצא לי תוכנית' },
 
   // ─── Hero ─────────────────────────────────────────────────────────
@@ -190,8 +191,8 @@ const STRINGS = {
   'about.badge':         { en: 'WHO WRITES THESE', he: 'מי אני' },
   'about.h2':            { en: "I'm Ohad. I've been programming this exact engine for years.", he: 'אני אוהד. שנים שאני בונה את השיטה הזאת.' },
   'about.p1': {
-    en: "Athletic Performance Coach at Bnei Herzliya. Spent four years playing American football in the NCAA — CMU, then a couple of college teams in Israel (OUI, TAU). Trained as an athlete first, then started programming for athletes who needed someone who'd done the work.",
-    he: 'מאמן יכולות אתלטיות בבני הרצליה. ארבע שנים שיחקתי פוטבול אמריקאי — ב-CMU בליגת ה-NCAA, ואחרי זה בקבוצות אוניברסיטה בארץ (OUI, TAU). הייתי ספורטאי לפני שהייתי מאמן. אחרי זה התחלתי לכתוב תוכניות לאתלטים שצריכים מישהו שעבר את הדרך בעצמו.',
+    en: "Athletic Performance Coach at Bnei Herzliya. Played three years of American football in the NCAA — CMU and Whittier. Trained as an athlete first, then started programming for athletes who needed someone who'd done the work.",
+    he: 'מאמן יכולות אתלטיות בבני הרצליה. שלוש שנים שיחקתי פוטבול אמריקאי ב-NCAA — ב-CMU וב-Whittier. הייתי ספורטאי לפני שהייתי מאמן. אחרי זה התחלתי לכתוב תוכניות לאתלטים שצריכים מישהו שעבר את הדרך בעצמו.',
   },
   'about.p2': {
     en: 'Today I work with the athletes I coach out of Herzliya — block-periodised training, progress logged on the phone, video reviewed every week. The portal you see here is the same one they use. I built it myself so I could stop juggling spreadsheets.',
@@ -206,7 +207,7 @@ const STRINGS = {
   'about.cred1':         { en: 'Athletic Performance Coach',  he: 'מאמן יכולות אתלטיות' },
   'about.cred1.s':       { en: '@ Bnei Herzliya',             he: '@ בני הרצליה' },
   'about.cred2':         { en: 'NCAA football',               he: 'פוטבול NCAA' },
-  'about.cred2.s':       { en: '4 yrs · CMU, OUI, TAU',       he: '4 שנים · CMU, OUI, TAU' },
+  'about.cred2.s':       { en: '3 yrs · CMU, Whittier',       he: '3 שנים · CMU, Whittier' },   // Ohad 24.10 #986: "3 years of ncaa: cmu+whittier"
   'about.cred3':         { en: 'Built the EXPO portal',       he: 'בניתי את פורטל EXPO' },
   'about.cred3.s':       { en: 'and use it daily',            he: 'משתמש בו כל יום' },
 

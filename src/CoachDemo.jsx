@@ -5657,6 +5657,7 @@ export default function CoachDemo() {
         }
       `}</style>
 
+      <DemoSwitch current="coach" he={readLang() === 'he'} />
       {/* Header */}
       <header style={{
         // the real header's surface, hairline and shadow (App.jsx), not the demo's own (#448)
@@ -5790,7 +5791,6 @@ export default function CoachDemo() {
           }}>{T('JOIN WAITLIST →')}</a>
         </div>
       </header>
-      <DemoSwitch current="coach" he={readLang() === 'he'} />
 
       {/* The POV banner that sat here — chip, sentence, athlete-view link —
           moved up into the header bar (see .cd-pov). One row, 56px, no void. */}

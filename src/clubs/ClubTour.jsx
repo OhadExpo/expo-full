@@ -78,12 +78,12 @@ export default function ClubTour({ he, base, accent, onAccent, page }) {
   // THE BANNER: one row at every width - what this is, and the tour
   const banner = (
     <>
+    <DemoSwitch current="teams" he={he} />
     <div data-demo-banner style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, minHeight: 36, padding: '0 12px', background: accent, color: onAccent, fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}
       title={he ? 'הדגמה: כל השחקנים והנתונים נוצרו להדגמה. אפשר ללחוץ על הכל - שום דבר לא נשמר.' : 'Demo: every player and number is generated. Press anything - nothing is saved.'}>
       <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{he ? 'הדגמה · שום דבר לא נשמר' : 'Demo · nothing is saved'}</span>
       {!stop && <button type="button" data-tour-open onClick={open} style={{ flexShrink: 0, height: 26, padding: '0 10px', border: `1px solid ${onAccent}`, background: 'transparent', color: onAccent, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{he ? 'סיור מודרך' : 'Guided tour'}</button>}
     </div>
-    <DemoSwitch current="teams" he={he} accent={accent} onAccent={onAccent} />
     </>
   );
   if (!stop) return banner;

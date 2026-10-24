@@ -14,6 +14,10 @@ import React, { useState } from 'react';
 import { track } from '@vercel/analytics';
 import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
+import { tr } from './i18n';
+
+// the front door renders in English; its words live in the dictionary, ready for Hebrew (#983)
+const t = (s) => tr('en', s);
 
 // Funnel: which front-door does a visitor pick? Mirrors expo-il's
 // chooser_pick event. track() is a no-op until Analytics is enabled in the
@@ -47,8 +51,19 @@ export default function EntryChooser() {
         <div style={{
           fontFamily: FN, color: C.tm, fontSize: 10, letterSpacing: '0.2em', fontWeight: 700,
           textTransform: 'uppercase',
-        }}>Coaching Platform</div>
+        }}>{t('Coaching Platform')}</div>
       </header>
+
+      {/* EXPO TEAMS (24.10 #983, Ohad on this screen: "for coaches & teams? i need way more places where it shows the team
+          option"): the app's front door had no way to the club product at all. The same strip as the marketing chooser
+          (expo-il/src/EntryChooser.jsx #966) - the two front doors share one look - first thing under the header. */}
+      <a href="/demo/club" onClick={() => pick('teams')} data-teams-strip
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px 14px', minHeight: 52, padding: '10px 20px', boxSizing: 'border-box',
+          borderBottom: `1px solid ${C.ac}26`, background: C.bg, color: C.tx, textDecoration: 'none', position: 'relative', zIndex: 2 }}>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: C.ac }}>{t('EXPO TEAMS')}</span>
+        <span style={{ fontFamily: FN, fontSize: 13, color: C.tm, textWrap: 'balance', textAlign: 'center' }}>{t('The performance office of a club, in one place')}</span>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: C.ac, whiteSpace: 'nowrap' }}>{t('SEE THE CLUB DEMO →')}</span>
+      </a>
 
       <div className="chooser-split" style={{ flex: 1, display: 'flex', position: 'relative' }}>
         {/* SIGN IN — existing coach OR client account. */}
@@ -91,9 +106,11 @@ export default function EntryChooser() {
         position: 'relative', zIndex: 2, background: C.bg,
       }}>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.16em' }}>
-          <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none' }}>FULL COACH DEMO</a>
+          <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none' }}>{t('FULL COACH DEMO')}</a>
           <span style={{ margin: '0 8px' }}>·</span>
-          <a href="https://expo-il.co.il/" style={{ color: C.td, textDecoration: 'none' }}>BUY A PROGRAM</a>
+          <a href="/demo/club" onClick={() => pick('teams')} style={{ color: C.td, textDecoration: 'none' }}>{t('TEAMS DEMO')}</a>
+          <span style={{ margin: '0 8px' }}>·</span>
+          <a href="https://expo-il.co.il/" style={{ color: C.td, textDecoration: 'none' }}>{t('BUY A PROGRAM')}</a>
           <span style={{ margin: '0 10px', opacity: 0.5 }}>·</span>
           © {new Date().getFullYear()} EXPO
         </span>

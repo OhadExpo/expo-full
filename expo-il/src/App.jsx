@@ -446,6 +446,12 @@ function Nav() {
   ];
   const [active, setActive] = useState('programs');
   const [mobileOpen, setMobileOpen] = useState(false);
+  // EXPO TEAMS IN THE MENU (24.10 #981, Ohad: "where else can i see the expo for clubs? very hard to see"): it was only
+  // the first-screen chooser strip and a footer line, so a visitor inside the catalog never met it. A different product,
+  // so a link out (boxed, cyan) beside the section tabs - never one of them.
+  const [lang] = useLang();
+  const teamsHref = `https://expo-app.co.il/demo/club${lang === 'he' ? '?lang=he' : ''}`;
+  const teamsClick = () => { try { track('nav_teams', {}); } catch { /* analytics blocked */ } setMobileOpen(false); };
   // Scroll-spy: as the user scrolls, mark whichever section is closest to the
   // top of the viewport as the active tab. Same behavior as the coach app's
   // observer-driven highlighting. Honors the 56px sticky header.
@@ -507,15 +513,17 @@ function Nav() {
     }}>
       <style>{`
         .fv-hdr-scroll::-webkit-scrollbar{display:none}
-        /* Hamburger visible only on phone widths. Above 720px the
-           horizontal nav row shows in full. */
+        /* Hamburger below 900px. Above it the horizontal nav row shows in full: with FOR CLUBS in the row (#981) the
+           English header needs ~840px - at 721-820 it scrolled sideways by up to 118px under a 720 breakpoint. */
+        /* the base rules BEFORE the media query (24.10 #981): '.fv-nav-drawer { display: none }' sat after it, won on
+           equal specificity, and the phone menu opened to nothing - the X showed, the drawer never did */
         .fv-burger { display: none; }
-        @media (max-width: 720px) {
+        .fv-nav-drawer { display: none; }
+        @media (max-width: 900px) {
           .fv-burger { display: inline-flex; }
           .fv-nav-inline { display: none !important; }
           .fv-nav-drawer { display: flex; }
         }
-        .fv-nav-drawer { display: none; }
       `}</style>
       <div className="fv-hdr-scroll" style={{
         maxWidth: 1200, margin: '0 auto', padding: '0 16px',
@@ -553,6 +561,11 @@ function Nav() {
               </button>
             );
           })}
+          <a href={teamsHref} target="_blank" rel="noopener noreferrer" onClick={teamsClick} data-nav-teams="" style={{
+            ...baseBtn, marginInlineStart: 8, background: 'transparent', color: C.ac,
+            border: `1px solid ${C.ac}`, borderRadius: 0, padding: '5px 10px',
+            fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', textDecoration: 'none',
+          }}>{t('nav.teams')}</a>
         </nav>
         <div style={{
           flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6,
@@ -624,6 +637,11 @@ function Nav() {
               </button>
             );
           })}
+          <a href={teamsHref} target="_blank" rel="noopener noreferrer" onClick={teamsClick} data-nav-teams="" style={{
+            ...baseBtn, background: 'transparent', color: C.ac, borderRadius: 0,
+            padding: '14px 18px', fontSize: 14, fontWeight: 700, textAlign: 'start', textDecoration: 'none',
+            borderBottom: `1px solid ${C.bd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}><span>{t('nav.teams')}</span><span aria-hidden="true">{lang === 'he' ? '←' : '→'}</span></a>
         </nav>
       )}
     </header>
@@ -632,6 +650,7 @@ function Nav() {
 
 function Hero({ onOpenQuiz }) {
   const t = useT();
+  const [lang] = useLang();
   return (
     <section id="top" style={{
       maxWidth: 1100, margin: '0 auto', padding: '64px 24px 40px',
@@ -743,6 +762,12 @@ function Hero({ onOpenQuiz }) {
           color: C.tm, textDecoration: 'none', textTransform: 'uppercase',
         }}>
           {t('hero.cta.how')} ↓
+        </a>
+        {/* #983: the club product from the first screen of the catalog, in the menu's own words */}
+        <a href={`https://expo-app.co.il/demo/club${lang === 'he' ? '?lang=he' : ''}`} target="_blank" rel="noopener noreferrer" data-teams-hero="" style={{
+          color: C.ac, textDecoration: 'none', textTransform: 'uppercase',
+        }}>
+          {t('nav.teams')} {lang === 'he' ? '←' : '→'}
         </a>
       </div>
     </section>

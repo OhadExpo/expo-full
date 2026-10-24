@@ -143,8 +143,8 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
       background: C.bg, color: C.tx, minHeight:'100vh',
       fontFamily: FB, display:'flex', flexDirection:'column',
     }}>
-      {!isEmbedded && !isTraineePortal && <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />}
       {!isEmbedded && !isTraineePortal && <DemoSwitch he={readLang() === 'he'} />}
+      {!isEmbedded && !isTraineePortal && <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />}
       {!isEmbedded && !isTraineePortal && <POVBanner pov={pov} />}
       {!isEmbedded && !isTraineePortal && pov === 'trainee' && <TraineeContextStrip exercise={exercise} />}
       {isTraineePortal ? (

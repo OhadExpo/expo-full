@@ -78,7 +78,9 @@ try {
         const ms = chat.msgs.getModelsArray();
         if (!ms.length) break;
         if (since ? ms[0].t * 1000 < Date.parse(since) : (!seen.size || ms.some((m) => seen.has(m.id.id)))) break;
-        const more = await Load.loadEarlierMsgs(chat).catch(() => null);
+        // loadEarlierMsgs takes { chat } in this WhatsApp build (24.10, #992): called with the chat itself it threw
+        // "reading 'pendingInitialLoading'", the catch ate it and every round read only what was already in memory
+        const more = await Load.loadEarlierMsgs({ chat }).catch(() => null);
         if (!more || !more.length) break;
       }
       out[g] = chat.msgs.getModelsArray().map((m) => ({

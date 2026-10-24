@@ -12,10 +12,16 @@ const DEMOS = [
   { k: 'teams', href: '/demo/club', en: 'Teams', he: 'קבוצות' },
 ];
 
-export default function DemoSwitch({ current = null, he = false, accent = C.ac, onAccent = '#000', style = null }) {
+// ONE BAR, ONE PLACE, ONE LOOK (24.10 #982, Ohad: "too many size differences when toggling to the different sites. it
+// needs to be the same size like navigating through the expo top menu"): it sat under the coach header (y 206), under the
+// athlete banner (172) and on top of the teams page (149), dark on two and light with a black pill on the third. Now every
+// demo opens with it as its FIRST row (y 0, 57px) and it carries EXPO's own dark tokens (data-theme="dark" on the bar),
+// whatever the page under it is - so switching demos never moves or recolours it.
+export default function DemoSwitch({ current = null, he = false }) {
+  const accent = C.ac, onAccent = '#000';
   return (
-    <nav data-demo-switch aria-label={he ? 'הדגמות' : 'Demos'} dir={he ? 'rtl' : 'ltr'}
-      style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px', background: 'var(--c-bg)', borderBottom: '1px solid var(--c-cardBd)', ...style }}>
+    <nav data-demo-switch data-theme="dark" aria-label={he ? 'הדגמות' : 'Demos'} dir={he ? 'rtl' : 'ltr'}
+      style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px', background: 'var(--c-bg)', borderBottom: '1px solid var(--c-cardBd)', boxSizing: 'border-box', height: 57 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, minmax(0, 1fr))', gap: 1, background: 'var(--c-cardBd)', border: '1px solid var(--c-cardBd)', width: '100%', maxWidth: 560 }}>
         <span style={{ display: 'flex', alignItems: 'center', height: 36, padding: '0 12px', background: 'var(--c-sf)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--c-td)', whiteSpace: 'nowrap' }}>{he ? 'הדגמה' : 'Demo'}</span>
         {DEMOS.map((d) => {

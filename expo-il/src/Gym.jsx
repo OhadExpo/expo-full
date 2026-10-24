@@ -989,6 +989,10 @@ function Footer({ heb }) {
               style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}>
               {heb ? 'אפליקציית EXPO ←' : 'EXPO athlete app →'}
             </a>
+            <a href={`https://expo-app.co.il/demo/club${heb ? '?lang=he' : ''}`} target="_blank" rel="noopener" data-teams-gym=""
+              style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}>
+              {heb ? 'EXPO למועדונים ←' : 'EXPO for clubs →'}
+            </a>
           </div>
         </div>
       </div>

@@ -50,6 +50,8 @@ const STRINGS = {
   },
   'hero.cta.coach':      { en: 'SEE COACH VIEW →',     he: 'הצד של המאמן ←' },
   'hero.cta.athlete':    { en: 'SEE ATHLETE VIEW →',   he: 'הצד של המתאמן ←' },
+  'hero.cta.teams':      { en: 'SEE TEAMS VIEW →',     he: 'הצד של המועדון ←' },   // #983: the club product from the hero
+  'header.teams':        { en: 'FOR CLUBS',            he: 'למועדונים' },
   'hero.cta.waitlist':   { en: 'JOIN WAITLIST →',      he: 'הצטרף לרשימה ←' },
   'hero.smallprint':     { en: 'NO CARD · NO SIGNUP · DEMO RUNS ON YOUR OWN CLIP', he: 'בלי כרטיס אשראי · בלי הרשמה · ההדגמה עובדת על סרטון שלך' },
   // Hero stat band — mirrors the expo-il online/performance-center heroes.
@@ -615,6 +617,7 @@ export default function CoachLanding({ lang = 'en' }) {
         }
       `}</style>
 
+      <DemoSwitch he={isHe} />
       {/* Header */}
       <header style={{
         background: C.bg, borderBottom: `1px solid ${C.cardBd}`,
@@ -649,6 +652,12 @@ export default function CoachLanding({ lang = 'en' }) {
             height: 34, boxSizing: 'border-box', display: 'inline-flex',
             alignItems: 'center', justifyContent: 'center', lineHeight: 1,
           }}>{t('header.demo')}</a>
+          <a href={isHe ? '/demo/club?lang=he' : '/demo/club'} className="cl-header-demo-btn" data-teams-head="" style={{
+            ...baseBtn, background: 'transparent', color: C.ac,
+            border: `1px solid ${C.ac}`, padding: '0 14px', fontSize: 11,
+            height: 34, boxSizing: 'border-box', display: 'inline-flex',
+            alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+          }}>{t('header.teams')}</a>
           <a href="/login" style={{
             ...baseBtn, background: 'transparent', color: C.tm,
             padding: '0 14px', fontSize: 11,
@@ -659,7 +668,6 @@ export default function CoachLanding({ lang = 'en' }) {
       </header>
 
       <main style={{ flex: 1 }}>
-        <DemoSwitch he={isHe} />
         {/* Hero */}
         <section style={{
           maxWidth: 920, margin: '0 auto', padding: '64px 16px 40px' /* the page's one 16px edge (OCD #494: 20) */, textAlign: 'center',
@@ -694,6 +702,10 @@ export default function CoachLanding({ lang = 'en' }) {
               ...baseBtn, background: 'transparent', color: C.tx,
               border: `1px solid ${C.bd2}`, padding: '0 26px', fontSize: 13,
             }}>{t('hero.cta.athlete')}</a>
+            <a href={isHe ? '/demo/club?lang=he' : '/demo/club'} data-teams-cta="" style={{
+              ...baseBtn, background: 'transparent', color: C.tx,
+              border: `1px solid ${C.bd2}`, padding: '0 26px', fontSize: 13,
+            }}>{t('hero.cta.teams')}</a>
             <a href="#waitlist" style={{
               ...baseBtn, background: 'transparent', color: C.ac,
               border: `1px solid ${C.ac}`, padding: '0 26px', fontSize: 13,

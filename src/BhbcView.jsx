@@ -5952,7 +5952,14 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                      athlete who trained twenty times in a month is being told
                      something false. Say what is known. */
                   : (att && att.n > 0
-                    ? <span title={tr('Last 28 days')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}{att.min >= 60 ? ` · ${Math.round(att.min / 60)}${zoneT('h')}` : att.min > 0 ? ` · ${att.min}′` : ''}</span>
+                    /* THE HOURS GIVE WAY, NOT THE CARD (24.10 #979, third squeeze after #380 / #651): height · two flags · PPG ·
+                       '34 SESSIONS · 10H' needs 243px and the grid caps a 4-up card at 242 (1440) / 237 (1180). The hours wrap
+                       onto a clipped second line when they do not fit and show whenever they do - no width threshold to retune.
+                       clip, not hidden: a scroll container would move the baseline the footer aligns on. */
+                    ? (() => { const hrs = att.min >= 60 ? `${Math.round(att.min / 60)}${zoneT('h')}` : att.min > 0 ? `${att.min}′` : ''; return (
+                      <span data-rc-sessions="" title={hrs ? `${tr('Last 28 days')} · ${hrs}` : tr('Last 28 days')} style={{ display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'flex-end', height: 10, overflow: 'clip', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>
+                        <span>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}</span>{hrs && <span data-rc-hours="">{' · '}{hrs}</span>}
+                      </span>); })()
                     : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, lineHeight: 1 }}>{tr('no load yet')}</span>)}</span>
               </div>
             </div>

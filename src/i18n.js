@@ -25,6 +25,14 @@ export const LangCtx = createContext('en');
 export const LANG_KEY = 'expo-lang';
 
 export const HE = {
+  // the app's front door (src/EntryChooser.jsx, #983): rendered in English today, its words live here
+  "Coaching Platform": "פלטפורמת אימון",
+  "EXPO TEAMS": "EXPO TEAMS",
+  "The performance office of a club, in one place": "מחלקת הביצועים של המועדון, במקום אחד",
+  "SEE THE CLUB DEMO →": "לדמו של המועדונים ←",
+  "FULL COACH DEMO": "הדגמה מלאה למאמן",
+  "TEAMS DEMO": "הדגמה למועדונים",
+  "BUY A PROGRAM": "לקנות תוכנית",
   "Close dialog": "סגירת החלון",
   "Get the EXPO app": "להתקין את אפליקציית EXPO",
   "Change password": "שינוי סיסמה",
