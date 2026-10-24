@@ -145,6 +145,9 @@ function autoReport(message, stack, source) {
   } catch { /* never */ }
 }
 
+// A FEATURE THAT GAVE UP files itself like a thrown error (#974: the trimmer that did not show on his phone left no trace)
+export function reportIssue(message, source) { autoReport(message, '', source); }
+
 // A SCREEN THAT NEVER LOADS throws nothing (#909, 23.10: a couple's block preview sat on 'Loading your program' for an
 // hour and only Ohad's phone screenshot said so). A loading screen still up after 20s, in a tab someone is looking at,
 // files itself exactly like a thrown error: same table, same queue, grouped by the screen.

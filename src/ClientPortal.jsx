@@ -47,6 +47,7 @@ import { summarize as summarizeSet, isUsable as isUsableSetRead, setFrameBudget 
 import { useUrlSync, useUrlFlag } from './urlState';
 import VideoTrimSheet from './VideoTrimSheet';   // #970 the trimmer, before any clip uploads
 import { fastCut, fastCutAvailable } from './videoCutFast';   // #970 v2 WebCodecs: faster than real time, keeps the sound
+import { reportIssue } from './consoleBuffer';   // #974 a trim or fast-cut failure files itself
 // the portal's pages in the URL, in the tabs' own words (#770)
 const PORTAL_PAGES = { prog: 'program', bwt: 'bodyweight', meal: 'meal-log', hist: 'history', pr: 'progress', msg: 'messages' };   // 16.10 #826: PRs grew into PROGRESS
 const PORTAL_KEY = { ...Object.fromEntries(Object.entries(PORTAL_PAGES).map(([k, w]) => [w, k])), prs: 'pr' };   // an old /prs link still opens it
@@ -1420,7 +1421,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const encodeClip = async (file, onProgress, signal, opts = {}) => {
     if (fastCutAvailable() && !fastFailedRef.current) {
       try { return await fastCut(file, opts, onProgress, signal); }
-      catch (e) { if (signal && signal.aborted) throw e; fastFailedRef.current = true; console.warn('fast cut failed, real-time encoder:', e && e.message); }
+      catch (e) { if (signal && signal.aborted) throw e; fastFailedRef.current = true; console.warn('fast cut failed, real-time encoder:', e && e.message); reportIssue(`FASTCUT · fell back to the real-time encoder: ${String(e && e.message).slice(0, 160)} · ${file.type || 'no type'} · ${Math.round(file.size / 1e5) / 10} MB`, 'fastcut'); }
     }
     return compressVideoChrome(file, onProgress, signal, opts);
   };

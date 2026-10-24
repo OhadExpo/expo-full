@@ -185,7 +185,8 @@ export function SheetBillingHistory({ traineeId, onCount, gapTop = 14 }) {
   const byMonth = new Map();
   for (const r of rows) if (r.event_kind === 'session') { const k = String(r.event_date).slice(0, 7); byMonth.set(k, (byMonth.get(k) || 0) + Number(r.sessions_count || 0)); }
   const attendance = [...byMonth.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, 8);
-  const th = { textAlign: 'start', fontFamily: FN, fontSize: 9, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, padding: '6px 10px', borderBottom: `1px solid ${C.cardBd}` };
+  // ONE 36px HEADER BAND (#969 table sweep: these headers were 26px - the table system's header is 36)
+  const th = { textAlign: 'start', fontFamily: FN, fontSize: 9, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, padding: '0 10px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', borderBottom: `1px solid ${C.cardBd}` };
   const td = { fontFamily: FB, fontSize: 13, color: C.tx, padding: '6px 10px', borderBottom: `1px solid ${C.divider || C.cardBd}` };
   return (
     <div style={{ marginTop: gapTop, borderTop: `1px solid ${C.cardBd}`, paddingTop: 12 }}>
@@ -481,7 +482,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
 
   // one row per header (27.9 #328 gate: 11 headers broke onto 2-3 rows at 390);
   // the table scrolls sideways in its ScrollFade instead
-  const th = { textAlign: 'start', fontFamily: FN, fontSize: 9, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, padding: '7px 10px', borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap', lineHeight: 1.25 };
+  const th = { textAlign: 'start', fontFamily: FN, fontSize: 9, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, padding: '0 10px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap', lineHeight: 1.25 };   /* one 36px band (#969) */
   const td = { fontFamily: FB, fontSize: 13, color: C.tx, padding: '7px 10px', borderBottom: `1px solid ${C.divider || C.cardBd}` };
   const totalPayments = clients.reduce((a, c) => a + c.payments.length, 0);
   const totalSessions = clients.reduce((a, c) => a + c.sessions, 0);

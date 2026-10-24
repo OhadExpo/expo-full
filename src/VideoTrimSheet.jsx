@@ -17,6 +17,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
+import { reportIssue } from './consoleBuffer';
 
 const MIN_LEN = 1;          // seconds: the shortest cut
 const HANDLE = 16;          // px: the handle's drawn width
@@ -41,6 +42,7 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
   const [playing, setPlaying] = useState(false);
   const [dragging, setDragging] = useState(null);      // 'start' | 'end' | 'scrub' | 'move' | null
   const [failed, setFailed] = useState(false);
+  const whyRef = useRef('');
   const closing = useRef(false);
 
   // ---- its own URL: the page + /trim, Back = cancel ----
@@ -73,16 +75,25 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
     const onSeeked = () => { seekRef.current.busy = false; if (seekRef.current.want != null) doSeek(); };
     const onMeta = () => {
       const d = v.duration;
-      if (!Number.isFinite(d) || d <= 0) { setFailed(true); return; }
+      if (!Number.isFinite(d) || d <= 0) { whyRef.current = `duration ${d}`; setFailed(true); return; }
       setDur(d); setCut({ start: 0, end: d });
       v.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
     };
-    const onErr = () => setFailed(true);
+    const onErr = () => { whyRef.current = `video error ${(v.error && v.error.code) || ''}`; setFailed(true); };
     v.addEventListener('seeked', onSeeked); v.addEventListener('loadedmetadata', onMeta); v.addEventListener('error', onErr);
-    return () => { v.removeEventListener('seeked', onSeeked); v.removeEventListener('loadedmetadata', onMeta); v.removeEventListener('error', onErr); };
+    // #974: on a phone the clip's metadata can arrive BEFORE this listener is attached (the effect runs after paint) -
+    // the event was missed and the sheet stayed invisible. Read it now if it is already there.
+    if (v.readyState >= 1) onMeta();
+    // and a sheet that cannot read its clip in 6 s gives the clip back uncut instead of hanging invisible
+    const watchdog = setTimeout(() => { if (!(v.duration > 0)) { whyRef.current = `no metadata in 6 s (readyState ${v.readyState})`; setFailed(true); } }, 6000);
+    return () => { clearTimeout(watchdog); v.removeEventListener('seeked', onSeeked); v.removeEventListener('loadedmetadata', onMeta); v.removeEventListener('error', onErr); };
   }, [doSeek]);
   // a clip that cannot be read here (a codec this browser lacks) uploads uncut - never blocks the athlete
-  useEffect(() => { if (failed) close(() => onDone({ start: 0, end: null, duration: null, trimmed: false, unreadable: true })); }, [failed]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!failed) return;
+    reportIssue(`TRIM · could not open the clip (${whyRef.current || 'unknown'}) · ${file.type || 'no type'} · ${Math.round(file.size / 1e5) / 10} MB`, 'trim');
+    close(() => onDone({ start: 0, end: null, duration: null, trimmed: false, unreadable: true }));
+  }, [failed]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // the loop and the playhead, by style at 60fps (no React state per frame)
   useEffect(() => {

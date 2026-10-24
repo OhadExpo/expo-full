@@ -44,10 +44,12 @@ const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function explain(d, migs) {
   const name = d.kind === 'function' ? d.key.split('(')[0] : d.kind === 'policy' ? d.key.split('.').slice(2).join('.') : d.key.split('.').pop();
   const table = d.kind === 'policy' ? d.key.split('.')[1] : null;
+  // the policy's OWN schema (#973: three storage.objects policies paged him as 'not explained' - the pattern knew public. only)
+  const schema = d.kind === 'policy' ? esc(String(d.key.split('.')[0] || 'public').toLowerCase()) : 'public';
   const n = esc(String(name).toLowerCase());
   const re = d.op === 'REMOVED'
     ? (d.kind === 'function' ? new RegExp(`drop\\s+function\\s+(if\\s+exists\\s+)?(public\\.)?${n}\\b`) : d.kind === 'policy' ? new RegExp(`drop\\s+policy\\s+(if\\s+exists\\s+)?${n}\\b`) : new RegExp(`drop\\s+table\\s+(if\\s+exists\\s+)?(public\\.)?${n}\\b`))
-    : (d.kind === 'function' ? new RegExp(`function\\s+(public\\.)?${n}\\s*\\(`) : d.kind === 'policy' ? new RegExp(`policy\\s+${n}\\s+on\\s+(public\\.)?${esc(String(table || '').toLowerCase())}\\b`) : new RegExp(`table\\s+(if\\s+not\\s+exists\\s+)?(public\\.)?${n}\\b`));
+    : (d.kind === 'function' ? new RegExp(`function\\s+(public\\.)?${n}\\s*\\(`) : d.kind === 'policy' ? new RegExp(`policy\\s+${n}\\s+on\\s+(${schema}\\.)?${esc(String(table || '').toLowerCase())}\\b`) : new RegExp(`table\\s+(if\\s+not\\s+exists\\s+)?(public\\.)?${n}\\b`));
   const hit = migs.find((m) => re.test(m.sql));
   return hit ? hit.file : null;
 }
