@@ -148,7 +148,7 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
       </div>
       {recent.length > 0 && (
         <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 14 }}>
-          <div style={{ ...miniLabel, display: 'flex', alignItems: 'center', height: 32, padding: '0 12px', borderBottom: `1px solid ${C.cardBd}` }}>{tt('Recent clips')}</div>
+          <div style={{ ...miniLabel, display: 'flex', alignItems: 'center', height: 36 /* #975: the house header band (32) */, padding: '0 12px', borderBottom: `1px solid ${C.cardBd}` }}>{tt('Recent clips')}</div>
           {recent.map((r, i) => {
             const on = activeUrl && r.ex.url === activeUrl;
             return (

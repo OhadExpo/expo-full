@@ -1838,7 +1838,7 @@ function DemoOverload({ trainee }) {
       </div>
       <div style={{ overflowX: 'auto', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
         <table className="ov-table" style={{ width: '100%', minWidth: 460, borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
-          <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Exercise', 'Last', 'Δ Recent', 'Sess', 'Last Date'].map((h, i) => <th key={h} className={i >= 3 ? 'ov-opt' : undefined} style={{ textAlign: i === 0 ? 'start' : 'end', whiteSpace: 'nowrap', padding: '8px 10px', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{T(h)}</th>)}</tr></thead>
+          <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Exercise', 'Last', 'Δ Recent', 'Sess', 'Last Date'].map((h, i) => <th key={h} className={i >= 3 ? 'ov-opt' : undefined} style={{ textAlign: i === 0 ? 'start' : 'end', whiteSpace: 'nowrap', padding: '0 10px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', width: i === 0 ? undefined : '1%', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{T(h)}</th>)}</tr></thead>
           <tbody>
             {rows.map(({ ex, st }) => {
               const open = openEid === ex.eid;

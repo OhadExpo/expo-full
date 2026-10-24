@@ -7091,7 +7091,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
   const pick = cols.some((c) => c.k === sort.key) ? sort.key : 'ppg';
   const shown = phone ? cols.filter((c) => c.k === 'gp' || c.k === pick) : cols;
   const th = (k, h, first) => (
-    <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'center' }} />
+    <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'center', ...(first ? null : { width: '1%' }) /* #975: a stat column is as wide as its heading and figures; the player column takes the rest (they split it evenly - 44px of figures in 102) */ }} />
   );
   return (
     <div className="bhbc-list" style={{ overflowX: phone ? 'visible' : 'auto' }}>
@@ -7365,8 +7365,8 @@ function SoccerLeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, to
               <tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
                 <th style={{ ...th, width: 34 }}>#</th>
                 <th style={{ ...th, textAlign: 'start' }}>{tr('Team')}</th>
-                {(heS ? ['מש׳', 'נ׳', 'ת׳', 'ה׳', 'שערים', 'הפרש', 'נק׳'] : ['P', 'W', 'D', 'L', 'Goals', '+/–', 'Pts']).filter((h, i) => !phoneS || [0, 5, 6].includes(i)).map((h) => <th key={h} style={th}>{h}</th>)}
-                {!phoneS && <th style={th}>{tr('Form')}</th>}
+                {(heS ? ['מש׳', 'נ׳', 'ת׳', 'ה׳', 'שערים', 'הפרש', 'נק׳'] : ['P', 'W', 'D', 'L', 'Goals', '+/–', 'Pts']).filter((h, i) => !phoneS || [0, 5, 6].includes(i)).map((h) => <th key={h} style={{ ...th, width: '1%' /* #975: the team column takes the slack */ }}>{h}</th>)}
+                {!phoneS && <th style={{ ...th, width: '1%' }}>{tr('Form')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -7398,7 +7398,7 @@ function SoccerLeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, to
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
                 <th style={{ ...th, textAlign: 'start' }}>{tr('Player')}</th>
-                {(heS ? ['הופעות', 'דקות', 'שערים', 'בישולים', 'צהובים'] : ['Apps', 'Min', 'Goals', 'Assists', 'Yellow']).filter((h, i) => !phoneS || [0, 2, 3].includes(i)).map((h) => <th key={h} style={th}>{h}</th>)}
+                {(heS ? ['הופעות', 'דקות', 'שערים', 'בישולים', 'צהובים'] : ['Apps', 'Min', 'Goals', 'Assists', 'Yellow']).filter((h, i) => !phoneS || [0, 2, 3].includes(i)).map((h) => <th key={h} style={{ ...th, width: '1%' /* #975: the player column takes the slack */ }}>{h}</th>)}
               </tr>
             </thead>
             <tbody>

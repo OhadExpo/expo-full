@@ -256,6 +256,7 @@ export default function OverloadChart({ workouts, exercises }) {
   const th = (key, label, align = 'start', cls) => (
     <th className={cls} onClick={() => setSortKey(key)} style={{
       textAlign: align, padding: '0 10px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', cursor: 'pointer', userSelect: 'none',   // the table system's one 36px header band (#969: 26)
+      ...(key === 'name' ? null : { width: '1%' }),   // #975: a number column is as wide as its heading and figures - the exercise takes the rest (they split it: 31px of figures in 117)
       fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
       color: sort.key === key ? C.ac : C.td, whiteSpace: 'nowrap',
       borderBottom: `1px solid ${C.cardBd}`,
