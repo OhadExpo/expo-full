@@ -505,7 +505,7 @@ const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: 
 // pinned cell, so it covers the days sliding beneath it.
 const LIFT_DUE_DAYS = 6;
 const LIFTS_NAME_W = 212;   // the longest FULL name fits (LUCAS GOLDENBERG) - one name form per table needs every row to (11.10 #673); 212 + 150 + 31 x 24 = 1106 in the 1162 card
-const LIFTS_LAST_W = 150;
+const LIFTS_LAST_W = 164;   // #949 gate 24.10: '23 Oct' + 'yesterday' at the zone's read size (13px) is 157 + its 14 padding - in 150 the age word was squeezed 4px out of its box
 // DAY TILES (#977, Ohad 24.10 on the 24px square grid: "Now not enough space.... Still ugly design redo it better"; before
 // it, #975: "Too much wasted horizontal and vertical space on each box"). Two measured failures: a 14px mark alone in a
 // 24 x 36 box (waste), then a 16px mark in a 24 x 24 box under a mesh of lines (no air). Now every day is a TILE - a
@@ -8123,7 +8123,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   style={{ display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr) auto auto', columnGap: 12, rowGap: 3, alignItems: 'center', padding: pi === past.length - 1 ? '11px 2px 1px' : '11px 2px 12px' /* the name's caps 15 under the line above, the injury line 15 over the rule (#735 band probe; 13 / 10 measured 17 / 13); the last row sits on the card's own 14 */, borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <span style={{ textAlign: 'end', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
-                  <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inj.onsetDate ? fmtNumericDate(inj.onsetDate) : ''}</span>
+                  <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inj.onsetDate ? (() => { const d = fmtNumericDate(inj.onsetDate); if (!/^\d\d\/\d\d\/\d{4}$/.test(d)) return d; return <>{d.slice(0, -4)}<span className="yr-cent">{d.slice(-4, -2)}</span>{d.slice(-2)}</>; })() : ''}</span>
                   <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', whiteSpace: 'nowrap' }}>{tr('Cleared')}</span>
                   <span style={{ gridColumn: '2 / -1', fontFamily: FB, fontSize: 12, lineHeight: '14px' /* the '·' pulled a fallback font with an 18px line: rows with a separator stood 4px taller (#735) */, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join('\u00a0· ')}</span>
                 </div>

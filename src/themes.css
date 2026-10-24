@@ -2001,7 +2001,8 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    row's own rule 10-15px above it read as a stray extra line (Previous
    injuries, Roster health, the load board). Rows keep their rule between them. */
 .bhbc-zone .bhbc-row:last-child { border-bottom-color: transparent !important; }
-.bhbc-zone .bhbc-inj-row > span { min-height: 0 !important; }   /* #975: the status word is a word in the row, not a 36px control - the row's own 36 is the floor */
+.bhbc-zone .bhbc-inj-row > span { min-height: 0 !important; }
+@media (max-width: 400px) { .bhbc-zone .yr-cent { display: none; } }   /* #949 gate 24.10: a cleared injury's date reads 10/10/26 on a small phone - with the full year the name beside it (Goldenberg) was cut 8px */   /* #975: the status word is a word in the row, not a 36px control - the row's own 36 is the floor */
 
 /* THE FIRST ROW UNDER A TITLE STRIP (29.9 #418, Ohad: "[athlete] has a very
    empty space above his row ... the first name after each title everywhere"):
