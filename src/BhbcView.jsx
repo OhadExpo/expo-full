@@ -6989,7 +6989,7 @@ const inCompView = (view, r, d, fixtures) => !view || view === 'all' || compKeyO
 // view it does not cover
 const leagueFeedServes = (view) => !view || view === 'all' || view === 'season';
 const COMP_VIEW_LABEL = {
-  he: { all: 'הכול', preseason: 'טרום עונה', season: 'עונה סדירה', playoff: 'פלייאוף', cup: 'גביע', bcl: 'ליגת האלופות' },
+  he: { all: 'הכל', preseason: 'טרום עונה', season: 'עונה סדירה', playoff: 'פלייאוף', cup: 'גביע', bcl: 'ליגת האלופות' },
   en: { all: 'All', preseason: 'Preseason', season: 'Season', playoff: 'Playoff', cup: 'Cup', bcl: 'BCL' },
 };
 function CompChips({ value, onChange, counts = null, style = null }) {

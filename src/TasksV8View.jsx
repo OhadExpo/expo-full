@@ -3342,7 +3342,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               fontFamily: FN, fontSize: 9, fontWeight: 700,
               letterSpacing: '0.12em', color: 'var(--c-tm)',
               textTransform: 'uppercase', textAlign: 'center',
-            }}>{readLang() === 'he' ? (doneStrip.length - 5 === 1 ? 'עוד אחת הושלמה · הכול בהיסטוריה' : `עוד ${doneStrip.length - 5} הושלמו · הכול בהיסטוריה`) : `${doneStrip.length - 5} ${tt('more done · view all in the history')}`}</div>
+            }}>{readLang() === 'he' ? (doneStrip.length - 5 === 1 ? 'עוד אחת הושלמה · הכל בהיסטוריה' : `עוד ${doneStrip.length - 5} הושלמו · הכל בהיסטוריה`) : `${doneStrip.length - 5} ${tt('more done · view all in the history')}`}</div>
           )}
           </div></div>
         </div>

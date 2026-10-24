@@ -74,7 +74,7 @@ export function Privacy() {
     <Shell title={heb ? 'מדיניות פרטיות' : 'Privacy policy'}>
       <H2>{heb ? 'מה נאסף' : 'What is collected'}</H2>
       <P>{heb
-        ? 'אם השארת אימייל באחד הטפסים באתר, נשמרים: כתובת האימייל, מאיזה טופס הגעת, ו־200 התווים הראשונים של מזהה הדפדפן שלך (user agent). זה הכול. אין טופס אחר באתר שאוסף פרטים.'
+        ? 'אם השארת אימייל באחד הטפסים באתר, נשמרים: כתובת האימייל, מאיזה טופס הגעת, ו־200 התווים הראשונים של מזהה הדפדפן שלך (user agent). זה הכל. אין טופס אחר באתר שאוסף פרטים.'
         : 'If you leave your email in a form on this site, what is stored is: the email address, which form it came from, and the first 200 characters of your browser’s user-agent string. That is all of it. No other form on this site collects anything.'}</P>
       <P>{heb
         ? 'מזהה הדפדפן נשמר כדי להבדיל בין פנייה אמיתית לבין הרשמה אוטומטית של בוט — לא לפרסום ולא לפרופיילינג.'

@@ -21,6 +21,7 @@ const SETTLE = Number(process.env.SETTLE || 6000);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444', defaultViewport: null, protocolTimeout: 180000 });
 const pg = await b.newPage();
+await pg.setBypassServiceWorker(true);   // a cached service worker served the previous bundle right after a deploy: the gate judged old code (24.10 #789b)
 await pg.setRequestInterception(true);
 const blocked = [];
 pg.on('request', (r) => {

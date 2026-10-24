@@ -917,7 +917,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
 
     {/* (READINESS and NEXT BLOCK are the scorecard tile and the moves at the top - 16.10 #814) */}
     <div style={{ fontSize: 11, color: C.td, margin: '18px 2px 4px', lineHeight: 1.6 }}>
-      {L(he, 'Verdict up top, gated on "did he train" · thin data is labelled, never faked · nothing here changes his program — it analyses + advises, you build.', 'הכול בתנאי שהאימונים באמת נרשמו · מה שחסר מסומן, לא ממציאים · שום דבר פה לא משנה את התוכנית — פה רק ממליצים, אתה בונה.')}
+      {L(he, 'Verdict up top, gated on "did he train" · thin data is labelled, never faked · nothing here changes his program — it analyses + advises, you build.', 'הכל בתנאי שהאימונים באמת נרשמו · מה שחסר מסומן, לא ממציאים · שום דבר פה לא משנה את התוכנית — פה רק ממליצים, אתה בונה.')}
     </div>
     <style>{`@media(max-width:720px){.lineage-grid2{grid-template-columns:1fr !important}}
 @media(max-width:620px){

@@ -88,6 +88,14 @@ const RULES = [
     fix: 'תוכנית / תוכניות',
   },
   {
+    id: 'spelling-his',
+    why: 'הכל, the way he writes it in every register - chat 375 : 0, program sheets 8 : 0, cues 13 : 0 (#825, 24.10); the apps had 53 הכל and 19 הכול',
+    // His chat spelled תכנית too, but his coaching sheets write תוכנית 61 : 1 - a spelling is taken from his writing only
+    // where every register agrees (spelling_825.py in the private voice folder).
+    test: /(?<![֐-׿])[והבלמשכ]{0,2}הכול(?![֐-׿])/g,
+    fix: 'הכל',
+  },
+  {
     id: 'sign-beside-number',
     why: 'a + / ± / ° beside a number inside a Hebrew string is bidi-neutral and jumps sides in RTL (skill: "say it in words"); shipped as +5 נקודות, ±6°, 87°, 6+ until 17.9',
     test: /(?<![A-Za-z])[+±](?:\$\{|\d)|(?:\d|\})°|(?:\d|\})\+(?![\d$])/g,
