@@ -363,10 +363,12 @@ export const DEMO_MEALS = [
 // sender_role/body_text/audio_url/duration_sec/created_at). demoMode bypasses
 // Supabase, so CoachMessages seeds these directly.
 const hoursAgo = n => new Date(today.getTime() - n * 3600000).toISOString();
+// ...in the page's language (#1029: the Hebrew demo showed three English bubbles), written in Hebrew, not translated
+const HE_MSG = HE_RUN;
 export const DEMO_MESSAGES = [
-  { id: 'msg_demo_1', trainee_id: 'tr_demo', sender_role: 'coach', body_text: 'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.', audio_url: null, duration_sec: null, created_at: hoursAgo(50) },
-  { id: 'msg_demo_2', trainee_id: 'tr_demo', sender_role: 'athlete', body_text: 'Thanks! Felt strong. Knee held up fine on legs day.', audio_url: null, duration_sec: null, created_at: hoursAgo(49) },
-  { id: 'msg_demo_3', trainee_id: 'tr_demo', sender_role: 'coach', body_text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.', audio_url: null, duration_sec: null, created_at: hoursAgo(26) },
+  { id: 'msg_demo_1', trainee_id: 'tr_demo', sender_role: 'coach', body_text: HE_MSG ? 'עבודה טובה בלחיצת חזה השבוע, ההחזקות האיזומטריות משתלמות. שמור על ירידה מבוקרת בדדליפט טראפ בר.' : 'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.', audio_url: null, duration_sec: null, created_at: hoursAgo(50) },
+  { id: 'msg_demo_2', trainee_id: 'tr_demo', sender_role: 'athlete', body_text: HE_MSG ? 'תודה! הרגשתי חזק. הברך החזיקה מעולה ביום רגליים.' : 'Thanks! Felt strong. Knee held up fine on legs day.', audio_url: null, duration_sec: null, created_at: hoursAgo(49) },
+  { id: 'msg_demo_3', trainee_id: 'tr_demo', sender_role: 'coach', body_text: HE_MSG ? 'מעולה. בשבוע הבא אני מעלה את הסט הכבד ביום A. תמלא דיווח מוכנות (כאב / שינה / אנרגיה) לפני שאתה מתחיל, ככה אני מתאים לך את העומס.' : 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.', audio_url: null, duration_sec: null, created_at: hoursAgo(26) },
 ];
 
 export const DEMO_PORTAL_VIS = {};

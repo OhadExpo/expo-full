@@ -1509,16 +1509,18 @@ const msgTime = (daysAgo, hhmm) => {
   const p = (n) => String(n).padStart(2, '0');
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${hhmm}`;
 };
+// in the page's language (#1029), the way the run prescriptions are (#866); the demo reloads when its language changes
+const HE_MSG = (() => { try { return readLang() === 'he'; } catch { return false; } })();
 const DEMO_MESSAGES = [
-  { role: 'coach',   time: msgTime(4, '09:14'), text: 'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.' },
-  { role: 'athlete', time: msgTime(4, '18:02'), text: 'Thanks! Felt strong — no niggles this week.' },
-  { role: 'coach',   time: msgTime(3, '08:40'), text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.' },
+  { role: 'coach',   time: msgTime(4, '09:14'), text: HE_MSG ? 'עבודה טובה בלחיצת חזה השבוע, ההחזקות האיזומטריות משתלמות. שמור על ירידה מבוקרת בדדליפט טראפ בר.' : 'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.' },
+  { role: 'athlete', time: msgTime(4, '18:02'), text: HE_MSG ? 'תודה! הרגשתי חזק, בלי כאבים השבוע.' : 'Thanks! Felt strong — no niggles this week.' },
+  { role: 'coach',   time: msgTime(3, '08:40'), text: HE_MSG ? 'מעולה. בשבוע הבא אני מעלה את הסט הכבד ביום A. תמלא דיווח מוכנות (כאב / שינה / אנרגיה) לפני שאתה מתחיל, ככה אני מתאים לך את העומס.' : 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.' },
 ];
 // the runner's thread (#866): his intervals and his heart-rate cap, not the strength athletes' bench
 const DEMO_RUNNER_MESSAGES = [
-  { role: 'coach',   time: msgTime(DEMO_RUNNER.lastAgo, '19:40'), text: 'Week 3 intervals: the same pace as week 1, and HR under 165 on every rep. In week 1 it hit 171.' },
-  { role: 'athlete', time: msgTime(DEMO_RUNNER.lastAgo, '20:15'), text: 'Felt easy today. I had more in me.' },
-  { role: 'coach',   time: msgTime(Math.max(0, DEMO_RUNNER.lastAgo - 1), '08:40'), text: 'Good, keep it there. Week 4 is the down week: the long run goes back to 8 km.' },
+  { role: 'coach',   time: msgTime(DEMO_RUNNER.lastAgo, '19:40'), text: HE_MSG ? 'אינטרוולים בשבוע 3: אותו קצב כמו בשבוע 1, ודופק מתחת ל-165 בכל חזרה. בשבוע 1 הוא הגיע ל-171.' : 'Week 3 intervals: the same pace as week 1, and HR under 165 on every rep. In week 1 it hit 171.' },
+  { role: 'athlete', time: msgTime(DEMO_RUNNER.lastAgo, '20:15'), text: HE_MSG ? 'היה קל היום. נשאר לי עוד כוח.' : 'Felt easy today. I had more in me.' },
+  { role: 'coach',   time: msgTime(Math.max(0, DEMO_RUNNER.lastAgo - 1), '08:40'), text: HE_MSG ? 'טוב, תישאר שם. שבוע 4 הוא שבוע דילואד: הריצה הארוכה חוזרת ל-8 ק״מ.' : 'Good, keep it there. Week 4 is the down week: the long run goes back to 8 km.' },
 ];
 const demoMessagesFor = (t) => (t && t.runner ? DEMO_RUNNER_MESSAGES : DEMO_MESSAGES);
 // CoachMessages' recBtnStyle: the composer's buttons are 30px, not the house 36

@@ -1840,7 +1840,7 @@ export function ChipGrid({ items, value, onChange, cols = null, phoneCols = null
       style={{ display: 'grid', gridTemplateColumns: `repeat(${desk}, minmax(0, 1fr))`, '--cg-phone': phone, border: '1px solid var(--c-cardBd)', boxSizing: 'border-box', minWidth: 0, ...style }}>
       {list.map((it) => {
         const on = isOn(it);
-        const he = typeof it.label === 'string' && isHebrew(it.label);
+        const he = it.he != null ? !!it.he : typeof it.label === 'string' && isHebrew(it.label);   // it.he: a Hebrew label that is not a plain string (a SegWord)
         const fill = it.color || '#39BDFF';
         const bg = !on ? 'transparent' : soft ? (it.color ? `color-mix(in srgb, ${it.color} 12%, transparent)` : 'rgba(57,189,255,0.094)') : fill;
         const fg = !on ? (it.tone || 'var(--c-tm)') : soft ? (it.color || 'var(--c-ac)') : '#FFFFFF';

@@ -31,6 +31,9 @@ import { createPoseOverlay } from './poseOverlay';
 
 const ACCENT = 0x39bdff, HIP_TRAIL = 0xf5a524, BODY = 0xe8eef5;
 const FEET = [27, 28, 29, 30, 31, 32];
+// THE PANEL'S CHIPS KEEP 3PX A SIDE (#1026): five to a row leaves a 360px phone 59px a chip, and the house 10px a side
+// clipped FRONT, BEHIND, TRAILS, SKELETON, SURFACE, TRANSVERSE, CHEST and GLUTES (measured, scrollWidth > clientWidth)
+const CHIP_TIGHT = { padding: '0 3px' };
 // the anatomy layers: bones alone, muscles alone, or the muscles see-through over the bones
 // THE LAYERS, as an anatomy app peels them (13.10 #721, Ohad: "skeleton > deeper muscles > superficial (however many
 // layers there are)"): the bake measured three muscle layers; each view shows the skeleton and every layer from the
@@ -941,7 +944,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   return (
     <div ref={wrapRef} style={{ background: '#0b0d10', position: 'relative' }}>
       {/* five a row (5.10 #556): ten in one row cut FULLSCREEN to "ULLSCREE" beside a clip */}
-      <ChipGrid value={null} cols={5} phoneCols={5} style={{ marginBottom: 8 }}
+      <ChipGrid value={null} cols={5} phoneCols={5} style={{ marginBottom: 8 }} cellStyle={CHIP_TIGHT}
         items={[
           pill('play', playing ? tt('PAUSE') : tt('PLAY'), () => setPlaying((v) => !v), playing),
           ...[0.25, 0.5, 1].map((s) => pill(`x${s}`, `${s}×`, () => setSpeed(s), speed === s)),
@@ -950,21 +953,23 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
           pill('top', vt('TOP'), () => view('top')),
           pill('behind', vt('BEHIND'), () => view('behind')),
           pill('trails', tt('TRAILS'), () => setTrails((v) => !v), trails),
-          pill('full', tt('FULL'), full),
+          // Hebrew 'מסך מלא' is wider than a 360px phone's chip: the ⛶ mark (the app's own, beside FULL) only where it cannot fit
+          /[\u0590-\u05FF]/.test(tt('FULL')) ? { ...pill('full', <SegWord full={tt('FULL')} short="⛶" />, full), he: true, title: tt('FULL') } : pill('full', tt('FULL'), full),
         ]} />
       {track && anat !== 'error' && (
         // a choice of one = a chip group (the house rule): the chosen layer filled; white resting text on this dark panel
-        <ChipGrid value={layer} onChange={setLayer} cols={4} phoneCols={4} style={{ marginBottom: 8, maxWidth: 560 }} ariaLabel={tt('MUSCLE LAYERS')}
-          items={[['skeleton', 'SKELETON'], ['deep', 'DEEP'], ['middle', 'MIDDLE'], ['surface', 'SURFACE']].map(([k, en]) => { const key = `layer·${k.toUpperCase()}`, he = tt(key); return { k, label: he === key ? en : he, tone: '#FFF' }; })} />
+        <ChipGrid value={layer} onChange={setLayer} cols={4} phoneCols={4} style={{ marginBottom: 8, maxWidth: 560 }} cellStyle={CHIP_TIGHT} ariaLabel={tt('MUSCLE LAYERS')}
+          items={[['skeleton', 'SKELETON'], ['deep', 'DEEP'], ['middle', 'MIDDLE'], ['surface', 'SURFACE']].map(([k, en]) => { const key = `layer·${k.toUpperCase()}`, he = tt(key); return { k, label: he !== key ? he : k === 'skeleton' ? <SegWord full="SKELETON" short="BONES" /> : en, tone: '#FFF' }; })} />
       )}
       {track && anat !== 'error' && (
-        // MUSCLE FOCUS (#907): the same chip group, ten = two full rows
-        <ChipGrid value={focus} onChange={setFocus} cols={5} phoneCols={5} style={{ marginBottom: 8, maxWidth: 640 }} ariaLabel={tt('MUSCLE FOCUS')}
+        // MUSCLE FOCUS (#907): the same chip group, ten = two full rows. Five to a row leaves a 360px phone 59px a chip, so the
+        // chips keep 3px a side (CHIP_TIGHT, #1026) and SHOULDERS shortens to SHLDR only when it cannot fit
+        <ChipGrid value={focus} onChange={setFocus} cols={5} phoneCols={5} style={{ marginBottom: 8, maxWidth: 640 }} cellStyle={CHIP_TIGHT} ariaLabel={tt('MUSCLE FOCUS')}
           items={FOCUS_KEYS.map((k) => { const key = `focus·${k.toUpperCase()}`, he = tt(key); return { k, label: he !== key ? he : k === 'shoulders' ? <SegWord full="SHOULDERS" short="SHLDR" /> : k.toUpperCase(), tone: '#FFF' }; })} />
       )}
       {MA && (
         // the joint box's plane (#716): the same chip group as the layers
-        <ChipGrid value={plane} onChange={setPlane} cols={3} phoneCols={3} style={{ marginBottom: 8, maxWidth: 480 }} ariaLabel={tt('PLANE')}
+        <ChipGrid value={plane} onChange={setPlane} cols={3} phoneCols={3} style={{ marginBottom: 8, maxWidth: 480 }} cellStyle={CHIP_TIGHT} ariaLabel={tt('PLANE')}
           items={[['sag', 'SAGITTAL'], ['front', 'FRONTAL'], ['trans', 'TRANSVERSE']].map(([k, en]) => { const key = `plane·${en}`, he = tt(key); return { k, label: he === key ? en : he, tone: '#FFF' }; })} />
       )}
       <div ref={rowRef} style={clipSrc ? { display: 'flex', flexDirection: clipSide ? 'row' : 'column', gap: 8, alignItems: 'flex-start' } : undefined}>

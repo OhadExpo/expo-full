@@ -2702,7 +2702,7 @@ export const HE = {
   'DRAG ORBIT · PINCH / WHEEL ZOOM': 'גרירה לסיבוב · צביטה או גלגלת לזום',
   'FRAME': 'פריים',
   'BEHIND': 'מאחור',
-  'TRAILS': 'מסלולים',
+  'TRAILS': 'מסלול',
   'HANDS': 'ידיים',
   'HIPS': 'אגן',   // the pelvis path in the 3D replay - his word (אגן 29 : ירכיים 0 in his writing)
   'SHOULDERS': 'כתפיים',   // the bar path of a squat (the bar is on his back)
