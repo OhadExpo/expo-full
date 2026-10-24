@@ -1257,8 +1257,17 @@ export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, 
   // to have him (just show him like a ghost athlete)"). A ghost is on the club
   // roster - his card shows, dimmed, on the Roster tab - but he is not counted:
   // no attendance, absences, alerts, S&C sheet or load board.
+  // SQUAD TENURE (24.10 #1024, Ohad: "add some type of system if they got cut or added at a certain point"): a player is
+  // on the squad from squadFrom to squadTo (both optional). TODAY's roster - boards, availability, alerts - is who is on
+  // it today; squadAll is everyone of the club this season, so a cut player's practices and games keep counting for
+  // the days he was here (Past practices' expected, Player Stats, game minutes).
   const roster = useMemo(
-    () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived' && !t.bhbcGhost)
+    () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived' && !t.bhbcGhost && onSquadOn(t, todayISO()))
+      .sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999)),
+    [trainees]
+  );
+  const squadAll = useMemo(
+    () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived' && !t.bhbcGhost && !(t.squadFrom && t.squadFrom > todayISO()))
       .sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999)),
     [trainees]
   );
@@ -1425,9 +1434,22 @@ function attendance28(rec, days) {
 
   // Roster changes go on the owner's Activity trail like every other write
   // (#305 N-F5): who tagged or untagged a player was the one change it missed.
+  // #1024: taking a player OFF the squad keeps him in the club with his last day (squadTo = today) when he has history
+  // with the club - his games and practices still count for the days he was here; an athlete ticked by mistake (no
+  // history) just loses the tag. Ticking a former player re-signs him from today.
   const setTeam = useCallback((id, on) => {
-    setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, team: on ? 'BHBC' : undefined, bhbcGhost: on ? t.bhbcGhost : undefined } : t));
+    const d = todayISO();
+    const hasHistory = (t) => Object.keys(((bhbcLoads || {})[t.id] || {}).sessions || {}).length > 0;
+    setTrainees((prev) => prev.map((t) => {
+      if (t.id !== id) return t;
+      if (on) return t.team === 'BHBC' && t.squadTo ? { ...t, squadFrom: d, squadTo: undefined } : { ...t, team: 'BHBC', squadFrom: t.squadFrom || d, squadTo: undefined, bhbcGhost: t.bhbcGhost };
+      return hasHistory(t) ? { ...t, squadTo: d } : { ...t, team: undefined, bhbcGhost: undefined, squadFrom: undefined, squadTo: undefined };
+    }));
     track('edit', on ? 'added an athlete to the club roster' : 'took an athlete off the club roster');
+  }, [setTrainees, track, bhbcLoads]);
+  const setSquadDate = useCallback((id, key, date) => {
+    setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, [key]: date || undefined } : t));
+    track('edit', key === 'squadTo' ? 'changed when an athlete left the squad' : 'changed when an athlete joined the squad');
   }, [setTrainees, track]);
   const setGhost = useCallback((id, on) => {
     setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, bhbcGhost: on || undefined } : t));
@@ -1443,7 +1465,7 @@ function attendance28(rec, days) {
     if (!name) return;
     const dup = trainees.find((t) => t && t.status !== 'Archived' && String(t.name || '').trim().toLowerCase() === name.toLowerCase());
     if (dup) { toast(dup.team === 'BHBC' ? 'Already on the club roster' : 'Already in EXPO - tick him in the list below'); return; }
-    setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name, team: 'BHBC', format: 'Bnei Herzliya', status: 'Active', createdAt: new Date().toISOString() }]);
+    setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name, team: 'BHBC', format: 'Bnei Herzliya', status: 'Active', squadFrom: todayISO(), createdAt: new Date().toISOString() }]);
     setNewAthlete(''); toast('Added'); track('edit', 'added a new athlete to the club roster');
   };
 
@@ -2648,7 +2670,7 @@ function attendance28(rec, days) {
                 <CourtAttendanceTab rows={rows} loads={bhbcLoads} medical={medical} fixtures={bhbcFixtures} today={today} onOpen={setDetailFor} />
                 {/* What the team ACTUALLY did, slot by slot (Ohad 08-24:
                     "where can I see the previous practices details?"). */}
-                <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} medical={medical} />
+                <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={squadAll} today={today} medical={medical} />
               </>
             )}
 
@@ -2668,7 +2690,7 @@ function attendance28(rec, days) {
                 ? <GameWarmupView data={gameWarmup} />
                 : CLUB.sport === 'soccer'
                   ? <SoccerLeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor} bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} view={compView} />
-                  : <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor}
+                  : <LeagueView league={league} roster={squadAll} fixtures={bhbcFixtures} onOpen={setDetailFor}
                     bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} view={compView}
                     viewChips={<CompChips value={compView} onChange={setCompView} counts={compCounts(bhbcFixtures, today)} style={{ marginBottom: 14 }} />} />}
             </>)}
@@ -2800,7 +2822,16 @@ function attendance28(rec, days) {
           const q = newAthlete.trim().toLowerCase();
           const live = trainees.filter((t) => t.status !== 'Archived');
           const hit = (t) => !q || String(t.name || '').toLowerCase().includes(q);
-          const onRoster = live.filter((t) => t.team === 'BHBC' && hit(t)).sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999) || String(a.name || '').localeCompare(String(b.name || '')));
+          const tdy = todayISO();
+          const isFormer = (t) => !!(t.squadTo && t.squadTo < tdy);   // #1024: left the squad before today
+          const onRoster = live.filter((t) => t.team === 'BHBC' && !isFormer(t) && hit(t)).sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999) || String(a.name || '').localeCompare(String(b.name || '')));
+          const former = live.filter((t) => t.team === 'BHBC' && isFormer(t) && hit(t)).sort((a, b) => String(b.squadTo).localeCompare(String(a.squadTo)));
+          const dateBox = (t, key, label) => (
+            <label className="bhbc-lands-box" title={label} style={{ ...box, border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{label}</span>
+              <input type="date" value={t[key] || ''} onChange={(e) => setSquadDate(t.id, key, e.target.value)} aria-label={label} style={{ height: '100%', minHeight: 0, width: '100%', minWidth: 0, boxSizing: 'border-box', fontFamily: FN, fontSize: 11, color: C.tx, background: 'transparent', border: 'none', borderRadius: 0, padding: 0 }} />
+            </label>
+          );
           const others = live.filter((t) => t.team !== 'BHBC' && hit(t)).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
           const taken = !!q && live.some((t) => String(t.name || '').trim().toLowerCase() === q);
           const canAdd = !!q && !taken;
@@ -2841,6 +2872,20 @@ function attendance28(rec, days) {
                     <button type="button" onClick={() => setEditArrival(t.id)} title={tr('Landing / arrival date')}
                       style={{ height: 'var(--btn-h)', minHeight: 0, display: 'inline-flex', alignItems: 'center', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.td }}>{tr('Landed')}</button>
                   )}
+                  {dateBox(t, 'squadFrom', tr('Joined'))}
+                </span>
+              </div>
+            ))}
+            {former.length > 0 && head(tr('Former players'), former.length)}
+            {former.map((t) => (
+              <div key={t.id} className="bhbc-manage-row">
+                <input type="checkbox" checked={false} onChange={(e) => setTeam(t.id, e.target.checked)} aria-label={t.name} title={tr('Back on the squad from today')} style={{ accentColor: NAVY, width: 16, height: 16, margin: 0, cursor: 'pointer' }} />
+                <span style={{ display: 'inline-flex', justifyContent: 'center' }}>{t.jersey != null && <Jersey n={t.jersey} size={22} />}</span>
+                <span className="bhbc-manage-name" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.td }}>{t.name}</span>
+                <span />
+                <span className="bhbc-manage-meta">
+                  {dateBox(t, 'squadFrom', tr('Joined'))}
+                  {dateBox(t, 'squadTo', tr('Left on'))}
                 </span>
               </div>
             ))}
@@ -6200,7 +6245,8 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
       .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
     const trained = [], out = [], scMins = [], scNotes = [], notes = [], rowsBy = [];
     let notYet = 0, wuN = 0;
-    for (const t of roster) {
+    const onDay = roster.filter((x) => onSquadOn(x, f.date));   // who was on the squad THAT day (#1024)
+    for (const t of onDay) {
       const rec = loads[t.id];
       const rows = (rec && rec.sessions && rec.sessions[f.date]) || [];
       // NOT LANDED YET, NOT AT PRACTICE (#305 N-B1). The roster-status rule
@@ -6252,7 +6298,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
     // read, so the row needs an author for the same reason a medical record
     // does — you cannot ask a question of an unsigned entry.
     const loggers = [...new Set(rowsBy.filter(Boolean))];
-    return { trained, out, expected: roster.length - notYet, scMinutes: scMins.length ? Math.round(sum(scMins) / scMins.length) : 0, scNote, wuCount: wuN, notes, loggers };
+    return { trained, out, expected: onDay.length - notYet, scMinutes: scMins.length ? Math.round(sum(scMins) / scMins.length) : 0, scNote, wuCount: wuN, notes, loggers };
   // medical belongs here (#305 N-D2): an injury filed or cleared while this
   // card is open moves who was out of a past practice, and without it the
   // rows kept the medical record as it was when the card first rendered.
@@ -7188,7 +7234,9 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
     return out;
   };
   // jersey order in, so every tie (and every dash) stays in jersey order
+  const tdyPS = todayISO();
   const items = (roster || []).map((t) => ({ t, s: merged(t) }))
+    .filter(({ t, s }) => !(t.squadTo && t.squadTo < tdyPS) || s)   // #1024: a former player stays while he has games
     .sort((a, b) => (a.t.jersey ?? 999) - (b.t.jersey ?? 999));
   const sort = useSort(items, {
     name: { get: (x) => x.t.name, asc: true },
@@ -7231,7 +7279,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
             const cell = (k) => (sort.key === k ? { ...td, ...BHBC_TD_SORTED } : td);
             return (
               <tr key={t.id} className="bhbc-row bhbc-trow" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ cursor: 'pointer' }}>
-                <td style={{ ...cell('name'), textAlign: 'start', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 22, textAlign: 'end', color: C.tm, fontWeight: 700, marginInlineEnd: 12, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}</td>
+                <td style={{ ...cell('name'), textAlign: 'start', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 22, textAlign: 'end', color: C.tm, fontWeight: 700, marginInlineEnd: 12, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}{t.squadTo && t.squadTo < tdyPS ? <span data-former="" style={{ marginInlineStart: 8, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.td }}>{tr('Left on')} {ddmm(t.squadTo)}</span> : null}</td>
                 {shown.map((c) => <td key={c.k} style={{ ...cell(c.k), textAlign: 'center' }}>{dash(c.k, s ? s[c.k] : null)}</td>)}
               </tr>
             );
@@ -7739,6 +7787,8 @@ export function byName(email) {
   return s.split(' ').filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
 }
 
+// on the squad on date d (#1024): squadFrom / squadTo are optional, inclusive ISO dates
+const onSquadOn = (t, d) => !!t && (!t.squadFrom || d >= t.squadFrom) && (!t.squadTo || d <= t.squadTo);
 const activeInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => !i.resolved);
 // THE ONE INJURY A ONE-LINE SLOT SHOWS IS THE WORST (#305 N-C18): the board
 // line, its MED button and the roster card took whichever record was filed

@@ -350,6 +350,10 @@ export const HE = {
   'No sessions': 'אין אימונים',
   'Log a session': 'תוסיף אימון',        // future-as-imperative, his register
   'Previous injuries': 'פציעות קודמות',
+  'Joined': 'הצטרף',
+  'Left on': 'עזב ב־',
+  'Former players': 'שחקנים לשעבר',
+  'Back on the squad from today': 'חוזר לסגל מהיום',
   'Recurring': 'פציעה חוזרת',
   '{d} out': '{d} בחוץ',
   'Earlier ({n})': 'ישנות יותר ({n})',
