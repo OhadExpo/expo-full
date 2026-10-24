@@ -53,7 +53,7 @@ function classify(ev) {
   if (/weight\s*room/i.test(s)) return { type: 'lift', location: place || undefined };
   if (/shootaround/i.test(s)) return { type: 'shootaround', location: place || undefined };
   if (/scrimmage/i.test(s)) return { type: 'scrimmage', opponent: vs.trim() || undefined, venue: place || undefined };
-  if (/\bgame\b|\bBCL\b|^G\d\b|cup/i.test(s)) return { type: 'game', opponent: vs.trim() || undefined, venue: place || undefined, home: /@\s*home/i.test(s) || undefined, comp: /BCL/i.test(s) ? 'Champions League' : (/winner/i.test(s) ? 'Winner Cup' : (/^G\d/.test(s) ? 'League' : undefined)) };
+  if (/\bgame\b|\bBCL\b|^G\d\b|cup/i.test(s)) return { type: 'game', opponent: vs.trim() || undefined, venue: place || undefined, home: /@\s*home/i.test(s) ? true : /@\s*away/i.test(s) ? false : undefined /* #1022: '@away' is an away game (18.10 stored none) */, comp: /BCL/i.test(s) ? 'Champions League' : (/winner/i.test(s) ? 'Winner Cup' : (/^G\d/.test(s) ? 'League' : undefined)) };
   if (/^BB\b/i.test(s)) return { type: 'practice', location: place || undefined };
   return null; // bus, flight, dinner, media day, toast, birthdays
 }

@@ -178,7 +178,8 @@ try {
     const loadsNow = await readStore(s, 'expo-bhbc-loads') || {};
     const endOf = (f) => { const [h, m] = String(f.start || '00:00').split(':').map(Number); const d = new Date(`${f.date}T00:00:00`); d.setHours(h || 0, (m || 0) + (Number(f.minutes) || 120), 0, 0); return d.getTime(); };
     const logged = (date) => roster.some((t) => (((loadsNow[t.id] || {}).sessions || {})[date] || []).some((r) => r && r.kind === 'game'));
-    const pending = fixtures.filter((f) => isBcl(f) && endOf(f) < Date.now() - 20 * 60000 && endOf(f) > Date.now() - 14 * 86400000 && !logged(f.date));
+    // a finished BCL game is pending while its minutes are not logged OR its result is not on the calendar (#1019)
+    const pending = fixtures.filter((f) => isBcl(f) && endOf(f) < Date.now() - 20 * 60000 && endOf(f) > Date.now() - 45 * 86400000 && (!logged(f.date) || !Number.isFinite(f.us) || !Number.isFinite(f.them)));
     if (!pending.length) { console.log('AUTO: no finished BCL game waiting to be logged'); }
     else {
       console.log(`AUTO: ${pending.length} finished BCL game(s) not logged: ${pending.map((f) => `${f.date} ${f.title}`).join(' | ')}`);
@@ -206,6 +207,28 @@ try {
     console.log(`  box checks OK: club PTS sum ${g.sum} = team score ${g.score}; every line PTS = 2P/3P/FT makes, REB = OREB+DREB`);
     if (!fx) { console.log('  REFUSED: the game date is not a Champions League game on the club calendar - not guessing a date'); exit = 1; continue; }
     if (fx.start && fx.start !== g.time) console.log(`  note: the club calendar says ${fx.start}, the official tip-off is ${g.time} (Israel time)`);
+    // THE RESULT ON THE CALENDAR GAME (24.10 #1019, Ohad: "Bcl games don't say w/l"): the club's score is the box score's
+    // own sum (checked above), the opponent's is the page header's; written once, read back.
+    {
+      const us = g.score, them = g.side === 'A' ? g.head.teamBScore : g.head.teamAScore;
+      if (Number.isFinite(us) && Number.isFinite(them) && (fx.us !== us || fx.them !== them)) {
+        console.log(`  result: ${us}-${them} (${us > them ? 'W' : 'L'}) -> the calendar game ${fx.date}${DRY ? ' (DRY: not written)' : ''}`);
+        if (!DRY) {
+          const cal = await readStore(s, 'expo-bhbc-fixtures') || [];
+          fs.mkdirSync(BACKUP_DIR, { recursive: true });
+          fs.writeFileSync(`${BACKUP_DIR}/expo-bhbc-fixtures-before-bcl-result-${g.gid}-${Date.now()}.json`, JSON.stringify(cal));
+          let hits = 0;
+          const nextCal = cal.map((f) => { if (isBcl(f) && f.date === fx.date) { hits++; return { ...f, us, them, resultSource: `championsleague.basketball/${g.gid}` }; } return f; });
+          if (hits !== 1) { console.log(`  REFUSED result write: ${hits} BCL calendar games on ${fx.date}`); exit = 1; }
+          else {
+            await writeStore(s, 'expo-bhbc-fixtures', nextCal);
+            const backCal = await readStore(s, 'expo-bhbc-fixtures') || [];
+            const okR = backCal.some((f) => isBcl(f) && f.date === fx.date && f.us === us && f.them === them);
+            console.log(`  result read-back ${okR ? 'OK' : 'MISSING'}`); if (!okR) exit = 1;
+          }
+        }
+      }
+    }
     const byJersey = new Map(roster.map((t) => [Number(t.jersey), t]));
     const DATE = fx.date;
     const loads = FAKE ? {} : await readStore(s, 'expo-bhbc-loads');

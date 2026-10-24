@@ -7132,11 +7132,14 @@ const clubSeasonStats = (t, loads, fixtures = null, view = 'all') => {
   const avg = (v) => (nb ? +(v / nb).toFixed(1) : null);
   const tp = { m: sum((b) => (b.fg3 || b.tp || {}).m), a: sum((b) => (b.fg3 || b.tp || {}).a) };
   const ft = { m: sum((b) => (b.ft || {}).m), a: sum((b) => (b.ft || {}).a) };
+  const f2 = { m: sum((b) => (b.fg2 || {}).m), a: sum((b) => (b.fg2 || {}).a) };   // #1020: 2P made / attempted
   const min = rows.reduce((a, r) => a + (Number(r.min) || 0), 0);
   return {
     gp: rows.length, boxGames: nb, mpg: +(min / rows.length).toFixed(1),
     ppg: avg(sum((b) => b.pts)), rpg: avg(sum((b) => b.reb)), apg: avg(sum((b) => b.ast)),
     tpp: tp.a ? Math.round((tp.m / tp.a) * 100) : null, ftp: ft.a ? Math.round((ft.m / ft.a) * 100) : null,
+    fg2m: avg(f2.m), fg2a: avg(f2.a), fg2p: f2.a ? Math.round((f2.m / f2.a) * 100) : null,
+    tpm: avg(tp.m), tpa: avg(tp.a), ftm: avg(ft.m), fta: avg(ft.a),
     pirpg: avg(sum((b) => b.pir)),
   };
 };
@@ -7156,10 +7159,15 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
   // everywhere else ('15.7 נק׳ למשחק' on a roster row).
   const cols = [
     { k: 'gp', h: 'GP', hs: 'מש׳' }, { k: 'mpg', h: 'MPG', hs: 'דק׳' }, { k: 'ppg', h: 'PPG', hs: 'נק׳' },
-    { k: 'rpg', h: 'RPG', hs: 'ריב׳' }, { k: 'apg', h: 'APG', hs: 'אס׳' }, { k: 'tpp', h: '3P%' },
-    { k: 'ftp', h: 'FT%' }, { k: 'pirpg', h: 'PIR' },
+    { k: 'rpg', h: 'RPG', hs: 'ריב׳' }, { k: 'apg', h: 'APG', hs: 'אס׳' },
+    // EVERY SHOT, MADE AND TAKEN (24.10 #1020, Ohad: "Add 3pt made, 3pt attempts, 2 points made, 2 points attempts etc to
+    // all the stats. Do not ever miss it"): per game, from every game's box (league + BCL + pre-season)
+    { k: 'fg2m', h: '2PM' }, { k: 'fg2a', h: '2PA' }, { k: 'fg2p', h: '2P%' },
+    { k: 'tpm', h: '3PM' }, { k: 'tpa', h: '3PA' }, { k: 'tpp', h: '3P%' },
+    { k: 'ftm', h: 'FTM' }, { k: 'fta', h: 'FTA' }, { k: 'ftp', h: 'FT%' }, { k: 'pirpg', h: 'PIR' },
   ];
-  const dash = (k, v) => (v == null ? '—' : k === 'tpp' || k === 'ftp' ? `${v}%` : v);
+  const PCT_KEYS = new Set(['fg2p', 'tpp', 'ftp']);   // the percentages (a /p$/ test caught GP)
+  const dash = (k, v) => (v == null ? '—' : PCT_KEYS.has(k) ? `${v}%` : v);
   // A player with no league stats has nothing to rank, so he sorts LAST in
   // BOTH directions. Letting him take the -1 would put every dash at the top of
   // an ascending sort, which answers nobody's question.
@@ -7173,6 +7181,10 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
     if (!lg) return club;
     const out = { ...club };
     for (const k of ['ppg', 'rpg', 'apg', 'tpp', 'ftp', 'pirpg']) if (out[k] == null && lg[k] != null) out[k] = lg[k];
+    // the shooting splits from the league's season totals when no boxed game carries them (#1020)
+    const pg = (v) => (lg.gp && v != null ? +(v / lg.gp).toFixed(1) : null);
+    const fill = { fg2m: pg(lg.fg2m), fg2a: pg(lg.fg2a), fg2p: lg.fg2p ?? null, tpm: pg(lg.tpm), tpa: pg(lg.tpa), ftm: pg(lg.ftm), fta: pg(lg.fta) };
+    for (const [k, v] of Object.entries(fill)) if (out[k] == null && v != null) out[k] = v;
     return out;
   };
   // jersey order in, so every tie (and every dash) stays in jersey order
@@ -7567,9 +7579,18 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
   // In that case this season hasn't started — show a pre-season state, not last year's
   // figures dressed up as "live". (Ohad: "only see stats from this year".)
   const pastData = !!league.season && seasonNorm(league.season) !== seasonNorm(currentSeason);
-  const t = league.team || {};
+  // TEAM STATS FOLLOW THE VIEW (24.10 #1023, Ohad: "Team stats should be beneath the sort and be affected by it"): they
+  // showed the league table's record over every view. Now every Herzliya game with a score - the league feed (the Winner
+  // Cup files under pre-season, #1017) and the calendar's scored games (scrimmages, BCL) - is counted in the view picked.
+  const scored = [
+    ...playedGames.filter((g) => isBH(g.home) || isBH(g.away)).map((g) => ({ date: g.date, us: isBH(g.home) ? g.hs : g.as, them: isBH(g.home) ? g.as : g.hs, key: compWordKey(`${g.comp || ''} ${g.stage || ''}`) || 'season' })),
+    ...(fixtures || []).filter((f) => f && (f.type === 'game' || f.type === 'scrimmage') && Number.isFinite(f.us) && Number.isFinite(f.them) && !playedGames.some((g) => g.date === f.date))
+      .map((f) => ({ date: f.date, us: f.us, them: f.them, key: compKeyOfFx(f) })),
+  ].filter((x) => Number.isFinite(x.us) && Number.isFinite(x.them) && (view === 'all' || x.key === view));
+  const t = scored.reduce((a, x) => ({ gp: a.gp + 1, w: a.w + (x.us > x.them ? 1 : 0), l: a.l + (x.us < x.them ? 1 : 0), pf: a.pf + x.us, pa: a.pa + x.them }), { gp: 0, w: 0, l: 0, pf: 0, pa: 0 });
+  t.ppg = t.gp ? +(t.pf / t.gp).toFixed(1) : 0; t.oppg = t.gp ? +(t.pa / t.gp).toFixed(1) : 0;
   const played = t.gp || 0;
-  const showCurrent = played && !pastData;
+  const showCurrent = !pastData;
   const summary = [
     { k: tr('Record'), v: played ? `${t.w}–${t.l}` : '—', c: C.tx },
     { k: tr('Points'), v: played ? t.ppg : '—', sub: tr('per game'), c: C.tx },
@@ -7578,6 +7599,8 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
   ];
   return (
     <>
+      {/* THE SEASON VIEW (#944) - over the cards it filters, Team Stats included (#1023) */}
+      {viewChips}
       {/* Team stats + live badge */}
       <Card padding={14} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={
         pastData
@@ -7614,8 +7637,6 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
         )}
       </Card>
 
-      {/* THE SEASON VIEW (#944) - over the two cards it filters; Team Stats above is the league's own record */}
-      {viewChips}
       {/* Player stats — the roster, with official league numbers */}
       <Card padding={14} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={pastData ? null : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{tr('tap a column to sort')}</span>}>
         {pastData ? (
@@ -7882,6 +7903,8 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick, roster = [], leag
   const lgGames = (league && Array.isArray(league.games)) ? league.games : [];
   const resultOf = (g) => {
     const x = lgGames.find((y) => y && y.date === g.date && y.played && (isBH(y.home) || isBH(y.away)));
+    // no league row (a BCL game, #1019): the calendar game's own result, written by the BCL logger from FIBA's box score
+    if ((!x || x.hs == null || x.as == null) && Number.isFinite(g.us) && Number.isFinite(g.them)) return { win: g.us > g.them, text: `${g.us}-${g.them}` };
     if (!x || x.hs == null || x.as == null) return null;
     const bh = isBH(x.home) ? x.hs : x.as, op = isBH(x.home) ? x.as : x.hs;
     return { win: bh > op, text: `${bh}-${op}` };
@@ -7910,7 +7933,7 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick, roster = [], leag
           return (
             <div key={k} data-game={g.date}>
               <GameRow dataKey={g.date} date={ddmm(g.date)} onClick={lines.length ? () => setOpenKey(open ? '' : k) : () => onPick(g)}
-                title={g.opponent ? `${g.home === false ? '@' : tr('vs')} ${g.opponent}` : tr(FX_LABEL[g.type] || 'Game')}
+                title={g.opponent ? `${homeOfFixture(g) === false ? '@' : tr('vs')} ${g.opponent}` : tr(FX_LABEL[g.type] || 'Game')}
                 detail={comp} venue={res ? `${res.win ? tr('W') : tr('L')} ${res.text}` : ''} time={lines.length ? `${lines.length} ${tr('played')}` : ''}
                 end={lines.length ? (
                   <span aria-hidden="true" style={{ display: 'inline-flex', width: 'var(--btn-h)', height: 'var(--btn-h)', alignItems: 'center', justifyContent: 'center', color: C.tm, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease' }}><CaretGlyph /></span>
