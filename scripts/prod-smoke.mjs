@@ -10,7 +10,9 @@ const ROUTES = process.argv.length > 3 ? process.argv.slice(3) : [
   '/coach/tasks', '/coach/bhbc', '/athlete', '/demo', '/demo/coach', '/demo/athlete', '/try',
 ];
 
-const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), protocolTimeout: 120000 });
+// the gates' own headless browser, never his Chrome (#958): on 9222 the first route timed out three runs running while
+// his Chrome was busy (24.10, deploy-1024w) - 12 of 12 clean on 9444 the same minute
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9444'), protocolTimeout: 120000 });
 const page = await b.newPage();
 await setWidth(page, 1440, 950);
 // A stale SW would serve the OLD bundle and every check below would be a lie.

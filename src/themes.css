@@ -1818,6 +1818,9 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 .bhbc-stats-table tbody { display: table-row-group !important; }
 .bhbc-stats-table tr { display: table-row !important; }
 .bhbc-stats-table th, .bhbc-stats-table td { display: table-cell !important; }
+/* #998: a table in a .bhbc-bleed14 scroller reaches the card's edges - its edge cells keep the text where it was (12 + 14) */
+.bhbc-bleed14 table tr > :first-child { padding-inline-start: 26px !important; }
+.bhbc-bleed14 table tr > :last-child { padding-inline-end: 26px !important; }
 .bhbc-stats-table th:first-child, .bhbc-stats-table td:first-child { position: sticky; inset-inline-start: 0; z-index: 1; background: var(--c-sf); }
 
 /* the load board's last-lift age says what it counts where the column header is gone (27.9) */

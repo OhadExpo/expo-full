@@ -2135,6 +2135,7 @@ function attendance28(rec, days) {
   .bhbc-med-row{ grid-template-columns: 10px var(--med-name-w, 96px) minmax(0,1fr) !important; margin-inline-start: 0 !important; }
           .bhbc-med-row > *:nth-child(3){ grid-column: 3 !important; }
           .bhbc-med-row > *:nth-child(4){ grid-column: 2 !important; justify-self: start !important; }
+          .bhbc-brief-week, .bhbc-brief-more{ padding-inline-start: 28px !important; }   /* #995: the dates on the surnames' x (dot 10 + gap 18) */
                   .bhbc-week-row{gap:7px!important}
           /* 84, NOT 74, AND THE 74 WAS MEASURED IN THE WRONG LANGUAGE.
              The note above says "74 is above the 72px widest date". In Hebrew
@@ -4605,6 +4606,23 @@ function HeadCoachReport({ rows, fx, fixtures, medical, loads = {}, today, onOpe
     fit(); let live = true; if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (live) fit(); }).catch(() => {});
     return () => { live = false; };
   });
+  // THIS WEEK, the same way (24.10 #995, Ohad: "too tight use the extra space so it will be ocd and spacious but not too
+  // much"): the date column was a fixed 96px that "SUN 25 OCT" filled to the pixel, so the time sat against it. Now it
+  // is the widest date on the list, and every column is 18px from the next.
+  const weekRef = useRef(null);
+  useLayoutEffect(() => {
+    const el = weekRef.current; if (!el) return undefined;
+    // ONE first column for both lists: the Medical surnames and these dates take the wider of the two, so the injury and the
+    // time start on one x down the whole card
+    const widest = (root, sel) => { let w = 0; if (root) root.querySelectorAll(sel).forEach((n) => { const r = document.createRange(); r.selectNodeContents(n); w = Math.max(w, r.getBoundingClientRect().width); }); return w; };
+    const fit = () => {
+      const w = Math.max(96, Math.ceil(Math.max(widest(el, '.bhbc-wk-date'), widest(medRef.current, '.bhbc-med-name'))) + 1);
+      el.style.setProperty('--wk-date-w', `${w}px`);
+      if (medRef.current) medRef.current.style.setProperty('--med-name-w', `${w}px`);
+    };
+    fit(); let live = true; if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (live) fit(); }).catch(() => {});
+    return () => { live = false; };
+  });
   const he = useHe();
   const tr = useT();
   // SURNAME, not given name (Ohad 09-01): the report read "OUT: [GIVEN],
@@ -4723,7 +4741,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
       {/* MEDICAL */}
       <Section label={tr("Medical")} list last={!sessions.length} src={tr('From the medical record')}>
         {injuries.length
-          ? <div ref={medRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
+          ? <div ref={medRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 36, rowGap: 0 }}>
               {/* EVERY PLAYER, NO BORDERS (27.9 #351/#369, Ohad: "the players and
                   rows and borders is not very asthetic" / "show all players
                   instead" of "+1 more"). The 19.9 line above and beneath each
@@ -4738,7 +4756,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   // the injury description was ellipsized to "AN…", which is not
                   // an injury report. It now takes its own line and the UPDATE
                   // button stays whole.
-                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px var(--med-name-w, 96px) minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2, marginInlineStart: -18, cursor: onOpen ? 'pointer' : 'default', padding: '2px 0' }}>
+                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px var(--med-name-w, 96px) minmax(0, 1fr) auto', alignItems: 'center', columnGap: 18, rowGap: 2, marginInlineStart: -28 /* the dot hangs in the gutter: 10 + its 18 */, cursor: onOpen ? 'pointer' : 'default', padding: '6px 0' /* #995: the This-week pitch */ }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                     <span className="bhbc-med-name" style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, minWidth: 0, whiteSpace: 'nowrap' }}>{surnameOf(t.name)}</span>
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
@@ -4772,20 +4790,15 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
       {/* THIS WEEK — team sessions */}
       {sessions.length > 0 && <Section label={tr("This week")} list last src={tr('From the club calendar')}>
         {sessions.length
-          ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
+          ? <div ref={weekRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 36, rowGap: 0 }}>
               {sessions.slice(0, 6).map((s, i) => {
                 return (
-                <div key={i}
-                  // flexWrap so a squeezed label moves to its own LINE instead of
-                  // being crushed to "PR…". Nothing here is clickable any more:
-                  // the row used to open the slot's plan, and plans are gone.
-                  className="bhbc-week-row"
-                  style={{ display: 'flex', alignItems: 'center', lineHeight: 'normal', gap: 10, rowGap: 2, flexWrap: 'wrap', padding: '2px 0' }}>
-                  {/* 96 + nowrap, same as the past-practice list: at 78px some dates
-                      wrapped to two lines and others did not, so the column read
-                      ragged down the card. */}
-                  <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, color: C.tx, width: 96, flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{s.date === today ? tr('Today') : `${dow(s.date)} ${monDay(s.date)}`}</span>
-                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[s.type] || NAVY, width: 46, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{s.start}</span>
+                // date | time | what - three columns on one x down the list, 18px apart, 6px above and under each row.
+                // Its own class: .bhbc-week-row is the Schedule board's, whose phone rules squeezed this list too.
+                <div key={i} className="bhbc-brief-week"
+                  style={{ display: 'grid', gridTemplateColumns: 'var(--wk-date-w, 96px) 46px minmax(0, 1fr)', alignItems: 'center', lineHeight: 'normal', columnGap: 18, padding: '6px 0' }}>
+                  <span className="bhbc-wk-date" style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, color: C.tx, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{s.date === today ? tr('Today') : `${dow(s.date)} ${monDay(s.date)}`}</span>
+                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[s.type] || NAVY, fontVariantNumeric: 'tabular-nums' }}>{s.start}</span>
                   {/* The descriptive label is the token that gives way: at 390px the
                       fixed date + time columns plus this label pushed the + PLAN action
                       86px past the viewport, where it could not be tapped at all
@@ -4793,11 +4806,11 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   {/* minWidth gives the label a floor: below it the row wraps and
                       the label keeps its own line, rather than ellipsizing down to
                       two characters, which told the coach nothing. */}
-                  <span style={{ color: C.tm, flexShrink: 1, minWidth: 104, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{fxLabelFor(s.type, FX_LABEL[s.type] || 'Session')}{s.minutes ? <>{' · '}<MinTok n={s.minutes} /></> : null}</span>
+                  <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{fxLabelFor(s.type, FX_LABEL[s.type] || 'Session')}{s.minutes ? <>{' · '}<MinTok n={s.minutes} /></> : null}</span>
                 </div>
                 );
               })}
-              {sessions.length > 6 && <span style={{ color: C.tm, fontSize: 12 }}>{tr('+{n} more on the Schedule tab').replace('{n}', sessions.length - 6)}</span>}
+              {sessions.length > 6 && <span className="bhbc-brief-more" style={{ color: C.tm, fontSize: 12, padding: '6px 0' }}>{tr('+{n} more on the Schedule tab').replace('{n}', sessions.length - 6)}</span>}
             </div>
           : <span style={mut}>{tr('No team sessions scheduled this week.')}</span>}
       </Section>}
@@ -5616,11 +5629,14 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
   });
   return (
     <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE} padX={14} padY={0} /* the rows pad themselves: 14 more under the last one = 8.5 / 23.5 (#732) */ /* the zone Card's 14: its title sat 4px in from every other card's (#547, measured 157 vs 153) */>
-      <div className="bhbc-load-scroll" style={{ overflowX: 'auto' }}>
+      {/* THE HEADER BAND RUNS TO THE CARD'S EDGES (24.10 #998, Ohad: "the grey background next to # should reach the end
+          of the row just like the blue above it"): it stopped 14px short on both sides. The scroller takes the card's
+          14px back as its own padding (a scroller clips at its padding box, so a band inside can reach into it). */}
+      <div className="bhbc-load-scroll" style={{ overflowX: 'auto', margin: '0 -14px', padding: '0 14px' }}>
 
         <div ref={loadInnerRef} className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
 
-          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
+          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, alignItems: 'center', minHeight: 36, margin: '0 -14px', padding: '0 16px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
             {/* THE HEADER STANDS OVER ITS COLUMN (27.9 #373, Ohad: "not ocd
                 order"): '#' is centred over the jersey badges, like the numbers
                 in them - measured 5px left of them. */}
@@ -5629,7 +5645,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
           </div>
           {/* the phone's header: the columns a restacked row still shows */}
           <SortBar sort={sort} className="bhbc-load-sortbar" cols={headCols.filter(([k]) => k !== 'ready' && k !== 'acute')}
-            style={{ alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
+            style={{ alignItems: 'center', minHeight: 36, margin: '0 -14px', padding: '0 16px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
           {sort.rows.map(({ t, acwr, series, readiness, avail }) => {
             const medFloor = activeInjuries(medical || {}, t.id)
               .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
@@ -7101,11 +7117,13 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
     <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'center', ...(first ? null : { width: '1%' }) /* #975: a stat column is as wide as its heading and figures; the player column takes the rest (they split it evenly - 44px of figures in 102) */ }} />
   );
   return (
-    <div className="bhbc-list" style={{ overflowX: phone ? 'visible' : 'auto' }}>
+    // THE HEADER BAND TO THE CARD'S EDGES (24.10 #998): the scroller takes the card's 14px on each side, the table's edge
+    // cells pad it back (themes.css .bhbc-bleed14) and the chips step back in
+    <div className="bhbc-list bhbc-bleed14" style={{ overflowX: phone ? 'visible' : 'auto', margin: '0 -14px' }}>
       {phone && (
         // all eight, GP too: two full rows of four - seven in one row cut 'עונשין %' in Hebrew
         <ChipGrid ariaLabel={tr('Sort by')} cols={4} phoneCols={4} value={pick} onChange={(k) => { if (sort.key !== k) sort.toggle(k); }}
-          style={{ marginBottom: 10 }} items={cols.map((c) => ({ k: c.k, label: he && c.hs ? c.hs : tr(c.h) }))} />
+          style={{ margin: '0 14px 10px' }} items={cols.map((c) => ({ k: c.k, label: he && c.hs ? c.hs : tr(c.h) }))} />
       )}
       {/* THE TABLE FILLS ITS SCROLLER (27.9, Ohad: "why the extra white space?
           useless"): index.html turns every table into display:block under

@@ -2704,6 +2704,19 @@ function Footer() {
       <div style={{ marginBottom: 32, paddingBottom: 16 /* 14.10 #735: the privacy line sat 31 under the input and 47 over this rule -> 31 / 31 */, borderBottom: `1px solid ${C.bd}` }}>
         <LeadCapture context="footer" />
       </div>
+      {/* THE OTHER TWO EXPOS ARE TITLES, NOT LINKS IN A LIST (24.10 #997, Ohad: "The cyan words are important titles that
+          right now have a bad design and no ocd order"): they wrapped wherever the row of grey links ran out. Their own row
+          now, first: two equal boxes on one grid, the label at the start and the arrow on the end - side by side from
+          560px, stacked under it. The copyright and the small links keep the line under them. */}
+      <div data-footer-doors="" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 10, marginBottom: 24 }}>
+        {[['#/gym', t('footer.gym'), false], [`https://expo-app.co.il/demo/club${lang === 'he' ? '?lang=he' : ''}`, t('footer.teams'), true]].map(([href, label, out]) => (
+          <a key={href} href={href} {...(out ? { target: '_blank', rel: 'noopener noreferrer' } : null)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 44, padding: '0 16px', boxSizing: 'border-box', border: `1px solid ${C.ac}`, color: C.ac, textDecoration: 'none', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: 1, whiteSpace: 'nowrap' }}>
+            <span>{String(label).replace(/\s*[→←]\s*$/, '')}</span>
+            <span aria-hidden="true">{lang === 'he' ? '←' : '→'}</span>
+          </a>
+        ))}
+      </div>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexWrap: 'wrap', gap: 14,
@@ -2715,14 +2728,6 @@ function Footer() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          <a href="#/gym"
-            style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1, fontWeight: 700 }}>
-            {t('footer.gym')}
-          </a>
-          <a href={`https://expo-app.co.il/demo/club${lang === 'he' ? '?lang=he' : ''}`} target="_blank" rel="noopener noreferrer"
-            style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1, fontWeight: 700 }}>
-            {t('footer.teams')}
-          </a>
           <a href="https://expo-app.co.il" target="_blank" rel="noopener noreferrer"
             style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
             {t('footer.portal')}
