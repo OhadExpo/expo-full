@@ -1989,6 +1989,24 @@ function attendance28(rec, days) {
         .bhbc-sortbar{display:none!important}
         @media (max-width:620px){.bhbc-load-sortbar{display:flex!important}}
         @media (max-width:760px){.bhbc-inj-sortbar{display:flex!important}}
+        /* ROSTER HEALTH (#993): 7 columns from 1240. Under it a row is two lines - name | status | actions, then the
+           check-in and the three numbers with their own small labels - and the sort bar stands in for the header; a
+           phone puts the actions on a third, full-width line. */
+        .rh2-k{display:none}
+        @media (max-width:1239px){
+          .bhbc-rh2-head{display:none!important}
+          .bhbc-rh2-sortbar{display:flex!important}
+          .bhbc-rh2-row{grid-template-columns:minmax(0,1fr) 124px 240px!important;row-gap:8px!important;padding:10px 0!important}
+          .bhbc-rh2-row > .rh2-meta{display:grid!important;grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(0,1fr));align-items:start;column-gap:18px;row-gap:8px;grid-column:1 / -1;grid-row:2;padding-inline-start:31px}
+          .bhbc-rh2-row .rh2-k{display:block!important;margin-bottom:2px}
+        }
+        @media (max-width:620px){
+          .bhbc-rh2-row{grid-template-columns:minmax(0,1fr) auto!important}
+          .bhbc-rh2-row > .rh2-act{grid-column:1 / -1;grid-row:3}
+          .bhbc-rh2-row > .rh2-act .bhbc-rh-actions{width:100%!important}
+          .bhbc-rh2-row > .rh2-meta{grid-template-columns:repeat(3,minmax(0,1fr))!important;padding-inline-start:0!important}
+          .bhbc-rh2-row > .rh2-meta > [data-rh-checkin]{grid-column:1 / -1}
+        }
         .bhbc-tab:hover{color:#fff!important;border-color:rgba(255,255,255,0.30)!important}
         /* 17.9 (Ohad, phone): 'סקירה gets cut and i cannot scroll to where it fully seen'.
            'safe center' still centred the row once it overflowed, so the first tab sat half
@@ -3605,21 +3623,25 @@ function acwrLabel(r) { return { detrained: 'undertrained', low: 'sweet spot', e
 // The inputs themselves never lost focus, because they are siblings of Seg
 // rather than children of it, so this was wasted work rather than the
 // focus-eating variant of the same mistake (audit finding #10).
-const WellnessSeg = ({ value, opts, onPick }) => (
+const WellnessSeg = ({ value, opts, onPick, kind }) => {
+  const he = useHe();   // the words in the zone's language (#993: Poor / Good / Great printed in English in Hebrew)
+  return (
   <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
-    {opts.map(([val, label]) => {
+    {opts.map(([val, label0]) => {
+      const label = he ? ((READY_HE[kind] || {})[val] || label0) : label0;
       const on = value === val;
       return (
         <button
           key={val}
           type="button"
           onClick={() => onPick(val)}
-          style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: on ? '#fff' : C.td, background: on ? NAVY : 'transparent', border: 'none', padding: '5px 8px', cursor: 'pointer', minWidth: 34 }}
+          style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: on ? '#fff' : C.td, background: on ? NAVY : 'transparent', border: 'none', padding: '5px 8px', cursor: 'pointer', minWidth: 34, whiteSpace: 'nowrap' }}
         >{label}</button>
       );
     })}
   </div>
-);
+  );
+};
 
 // Squad wellness check-in — sleep / energy / pain per athlete → feeds the
 // readinessAutoreg engine (session nudge on the load board + athlete profile).
@@ -3659,8 +3681,8 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
             <div key={t.id} style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, alignItems: 'center', padding: '7px 2px', borderBottom: `1px solid ${C.cardBd}` }}>
               <Jersey n={t.jersey} size={22} />
               <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}><WellnessSeg value={(entries[t.id] || {}).sleep} opts={SLEEP} onPick={(v) => set(t.id, 'sleep', v)} /></div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}><WellnessSeg value={(entries[t.id] || {}).energy} opts={ENERGY} onPick={(v) => set(t.id, 'energy', v)} /></div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}><WellnessSeg value={(entries[t.id] || {}).sleep} kind="sleep" opts={SLEEP} onPick={(v) => set(t.id, 'sleep', v)} /></div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}><WellnessSeg value={(entries[t.id] || {}).energy} kind="energy" opts={ENERGY} onPick={(v) => set(t.id, 'energy', v)} /></div>
               <input type="number" min="0" max="10" value={(entries[t.id] || {}).pain} onChange={(e) => set(t.id, 'pain', e.target.value === '' ? '' : Number(e.target.value))} placeholder="—" style={inp} />
               <input type="number" min="0" step="0.1" inputMode="decimal" value={(entries[t.id] || {}).bw} onChange={(e) => setVal(t.id, 'bw', e.target.value)} placeholder="—" style={inp} title={tr("Bodyweight (kg) — optional, shows in the athlete's history + BW trend")} />
             </div>
@@ -8005,6 +8027,113 @@ function LoadOutputCard({ rows, loads, medical }) {
 // went to the injury column, which left one wide empty band in the middle of every row on a desktop.
 const INJ_COLS = 'minmax(170px, 1.15fr) minmax(0, 1.5fr) minmax(136px, 1fr) minmax(108px, 0.85fr) minmax(110px, 0.9fr) 72px';
 
+// The check-in's words in Hebrew. They describe שינה / אנרגיה, both feminine (#993: the check-in modal printed
+// Poor / Good / Great in English inside the Hebrew zone - its labels never went through tr()).
+const READY_HE = { sleep: { poor: 'גרועה', ok: 'בסדר', good: 'טובה', great: 'מצוינת' }, energy: { low: 'נמוכה', ok: 'בינונית', good: 'גבוהה', high: 'גבוהה מאוד' } };
+const READY_EN = { poor: 'poor', ok: 'ok', good: 'good', great: 'great', low: 'low', high: 'high' };
+
+// ROSTER HEALTH, ONE ROW = THE PLAYER'S HEALTH AT A GLANCE (24.10 #993, Ohad: "this roster health table looks very
+// plain and uselsess. the reports doesnt give me anything when its like this. redesign it perfectly and use it
+// everywhere"). It repeated the status the Injury Board above it already shows. Each row now reads what no other card
+// on the tab does: his latest check-in (pain, sleep, energy - the last 3 days), the days he was OUT in the last 4 weeks,
+// his training minutes this week and his injury history. Worst first - an injury, then a check-in that flags (pain 4+,
+// a poor night, low energy) - and every column sorts, like every zone table. One component for every club, demo and
+// seat. 7 columns from 1240px; under it each row is two lines (the sort bar stands in for the header); a phone puts the
+// actions on a third.
+const RH_COLS = 'minmax(170px, 1.3fr) 124px minmax(232px, 1.5fr) 80px 80px minmax(120px, 1fr) 240px';
+function RosterHealthCard({ roster, medical, loads = {}, canMedical, onOpen, onLog, onEdit, onReport }) {
+  const tr = useT();
+  const he = useHe();
+  const today = todayISO();
+  const SEV = { out: 0, 'non-contact': 1, limited: 2, available: 3 };
+  const AMBER = 'var(--bhbc-amber-text, #E0A73A)';
+  const rows = roster.map((t) => {
+    const act = activeInjuries(medical, t.id);
+    const status = act.length ? act.slice().sort((a, b) => (SEV[a.status] ?? 4) - (SEV[b.status] ?? 4))[0].status : 'available';
+    const all = (medical[t.id] || {}).injuries || [];
+    const last = all.slice().sort((a, b) => String(b.onsetDate || '').localeCompare(String(a.onsetDate || '')))[0] || null;
+    const rec = loads[t.id] || {};
+    const rd = Object.keys(rec.readiness || {}).filter((d) => d <= today && dayDiff(today, d) <= 3).sort().pop() || null;
+    const r = rd ? rec.readiness[rd] : null;
+    const pain = r && r.pain !== '' && r.pain != null && !Number.isNaN(Number(r.pain)) ? Number(r.pain) : null;
+    const flag = (pain == null ? 0 : pain >= 6 ? 3 : pain >= 4 ? 2 : 0) + (r && r.sleep === 'poor' ? 1 : 0) + (r && r.energy === 'low' ? 1 : 0);
+    const out28 = Object.entries(rec.availability || {}).filter(([d, v]) => Number(v) === 4 && d <= today && dayDiff(today, d) < 28).length;
+    let min7 = 0;
+    Object.entries(rec.sessions || {}).forEach(([d, list]) => { if (d <= today && dayDiff(today, d) < 7) (list || []).forEach((x) => { if (x && x.attended !== false) min7 += Number(x.min ?? x.minutes) || 0; }); });
+    return { t, act, status, hist: all.length, last, rd, r, pain, flag, out28, min7 };
+  });
+  const sort = useSort(rows, {
+    name: { get: (x) => x.t.name, asc: true },
+    status: (x) => (3 - (SEV[x.status] ?? 3)) * 10 + x.flag,
+    checkin: (x) => (x.rd ? x.flag * 20 + (x.pain ?? 0) : -1),
+    out: (x) => x.out28,
+    train: (x) => x.min7,
+    history: (x) => x.hist,
+  }, 'status');
+  const lc = (s) => (he ? s : String(s).toLowerCase());
+  const word = (kind, v) => (he ? (READY_HE[kind] || {})[v] : READY_EN[v]) || v;
+  const head = [['name', tr('Athlete')], ['status', tr('Status')], ['checkin', tr('Last check-in')], ['out', tr('Out · 28d')], ['train', tr('Min · 7d')], ['history', tr('History')]];
+  const th = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm };
+  const k = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.td, marginInlineEnd: 5 };
+  return (
+    <Card padding={14} leftStripe={NAVY} header={secTitle('Roster Health')}
+      headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{rows.filter((x) => x.rd === today).length}/{rows.length} {tr('checked in today')}</span>}>
+      <div>
+        <div className="bhbc-rh2-head" style={{ display: 'grid', gridTemplateColumns: RH_COLS, gap: 12, alignItems: 'center', minHeight: 36, padding: '0 14px', margin: '0 -14px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
+          {head.map(([key, h], i) => <SortHeader key={key} k={key} sort={sort} label={h} style={{ ...th, ...(i === 0 ? { paddingInlineStart: 31 } : null) }} />)}
+          <div />
+        </div>
+        <SortBar sort={sort} className="bhbc-rh2-sortbar" cols={[['name', tr('Athlete')], ['status', tr('Status')], ['checkin', tr('Last check-in')], ['out', tr('out')]]}
+          style={{ flexWrap: 'nowrap', justifyContent: 'space-between', columnGap: 8, alignItems: 'center', minHeight: 36, padding: '0 16px', margin: '0 -14px', background: 'var(--c-sf2)', ...th, borderBottom: `1px solid ${C.cardBd}` }} />
+        <NameScopeProvider>
+          {sort.rows.map(({ t, act, status, hist, last, rd, r, pain, out28, min7 }) => (
+            <div key={t.id} className="bhbc-row bhbc-rh2-row" style={{ display: 'grid', gridTemplateColumns: RH_COLS, gap: 12, alignItems: 'center', minHeight: 56, padding: '8px 0', boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, cursor: 'pointer' }} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}>
+                <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
+                <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
+              </div>
+              <StatusWord status={status} />
+              <div className="rh2-meta" style={{ display: 'contents' }}>
+                {/* CHECK-IN: his own words from the last 3 days - your pain rule colours it (0-3 fine, 4-5 modify, 6+ stop) */}
+                <div data-rh-checkin="" style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 0, lineHeight: 1.5, minHeight: '3em' /* two lines on every row, a '—' too */ }}>
+                  <span className="rh2-k" style={k}>{tr('Last check-in')}</span>
+                  {/* TWO FIXED LINES, every row the same: pain (and the day, when it is not today), then sleep · energy -
+                      one running line broke wherever the column ran out ("ENERGY / GOOD") */}
+                  {r ? <span className="rh2-ci" style={{ display: 'inline-flex', flexDirection: 'column', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                    <span>
+                      {pain != null ? <span style={{ fontWeight: pain >= 4 ? 800 : 700, color: pain >= 6 ? '#DE4E3B' : pain >= 4 ? AMBER : C.tx }}>{tr('pain')} {pain}</span> : <span style={{ color: C.td }}>{tr('pain')} —</span>}
+                      {rd !== today && <span style={{ color: C.td }}>{' · '}{monDay(rd)}</span>}
+                    </span>
+                    <span>
+                      {lc(tr('Sleep'))} <span style={{ fontWeight: 700, color: r.sleep === 'poor' ? AMBER : C.tx }}>{r.sleep ? word('sleep', r.sleep) : '—'}</span>
+                      {' · '}{lc(tr('Energy'))} <span style={{ fontWeight: 700, color: r.energy === 'low' ? AMBER : C.tx }}>{r.energy ? word('energy', r.energy) : '—'}</span>
+                    </span>
+                  </span> : <span className="rh2-ci" style={{ display: 'inline-flex', flexDirection: 'column', verticalAlign: 'top' }}><span style={{ color: C.td }}>—</span><span>{' '}</span></span>}
+                </div>
+                <div data-rh-out="" style={{ fontFamily: FN, fontSize: 12, fontWeight: out28 ? 800 : 400, color: out28 ? C.tx : C.td, fontVariantNumeric: 'tabular-nums' }}><span className="rh2-k" style={k}>{tr('Out · 28d')}</span>{out28}</div>
+                <div data-rh-min="" style={{ fontFamily: FN, fontSize: 12, color: min7 ? C.tx : C.td, fontVariantNumeric: 'tabular-nums' }}><span className="rh2-k" style={k}>{tr('Min · 7d')}</span>{min7 ? <MinTok n={min7} /> : '0'}</div>
+                <div data-rh-hist="" style={{ fontFamily: FN, fontSize: 11, lineHeight: 1.5, color: hist ? C.tx : C.td, minWidth: 0 }}><span className="rh2-k" style={k}>{tr('History')}</span>
+                  {/* two lines, always: the count, then the last body part (a blank line when there is none) */}
+                  <span style={{ display: 'block', whiteSpace: 'nowrap' }}>{hist ? (hist === 1 ? tr('1 injury') : `${hist} ${tr('injuries')}`) : '—'}</span>
+                  <span style={{ display: 'block', whiteSpace: 'nowrap', color: C.tm }}>{hist && last && last.bodyPart ? tr(String(last.bodyPart).split('/')[0].trim()) : '\u00a0'}</span>
+                </div>
+              </div>
+              <div className="rh2-act">
+                {onLog || canMedical ? (
+                  <JoinedButtons className="bhbc-rh-actions" style={{ width: 240, flexShrink: 0 }} items={[
+                    onLog && { label: tr('Log lift'), title: tr('Log a lift for this athlete'), onClick: () => onLog(t.id) },
+                    canMedical && { label: act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report'), onClick: () => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id)) },
+                  ]} />
+                ) : <span className="bhbc-rh-actions" style={{ width: 240, flexShrink: 0 }} />}
+              </div>
+            </div>
+          ))}
+        </NameScopeProvider>
+      </div>
+    </Card>
+  );
+}
+
 function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedical = true, onReport, onEdit, onOpen, onLog }) {
   const he = useHe();
   const tr = useT();
@@ -8162,49 +8291,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
       {/* The sRPE session-load card is not mounted: the club logs no RPE, ever
           (Ohad 23.9), so it could only say "no load logged yet" (27.9 sweep). */}
 
-      <Card padding={14} leftStripe={NAVY} header={secTitle('Roster Health')}>
-        <div>
-          <NameScopeProvider>
-          {roster.map((t) => {
-            const act = activeInjuries(medical, t.id);
-            // the WORST of his active records, in the board's order (#305 N-M1):
-            // non-contact was skipped, so limited + non-contact read Limited
-            const status = act.length ? act.slice().sort((a, b) => (SEV[a.status] ?? 4) - (SEV[b.status] ?? 4))[0].status : 'available';
-            const hist = ((medical[t.id] || {}).injuries || []).length;
-            return (
-              <div key={t.id} className="bhbc-row bhbc-rh-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 14, rowGap: 11 /* #735: the name block 19.5 under the line, 15.5 over the buttons - padding 11 above, 8 under it */, padding: '11px 0', borderBottom: `1px solid ${C.cardBd}` }}>
-                <div style={{ flex: '1 1 160px', display: 'flex', alignItems: 'center', gap: 10, minWidth: 140, cursor: 'pointer' }} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}>
-                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'end', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
-                  {/* the record count UNDER the name (11.10 #651): beside it, "· 3 records" took 75 of a phone's
-                      172px and even the surname alone overran - "Broughton" by 26px at 360 */}
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: '1 1 auto' }}>
-                    <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx }} />
-                    {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em' }}>{hist === 1 ? tr('1 record') : `${hist} ${tr('records')}`}</span>}
-                  </span>
-                </div>
-                {/* ONE STATUS COLUMN (29.9 #416, Ohad: "the colors and the status
-                    looks misaligned"): a FIXED width, so the buttons after it
-                    stand on one x in every row whatever the word; every status
-                    has its dot in the zone's colours (green Available too, as on
-                    the load board), and the words start on one x. An exception
-                    reads in full ink, Available stays calm. */}
-                <StatusWord status={status} />
-                {/* THE ROW'S ACTIONS ARE ONE JOINED PAIR (11.10 #673; his 9.10 rule: 2+ actions = JoinedButtons) - they
-                    were two loose boxes 10px apart. One width in every row, so the pairs stand in one column. */}
-                {/* 240: two equal halves that hold the Hebrew 'רישום כוח אישי' (cut 8px at 176); nothing to do = the same
-                    width, empty, never an empty bordered bar (pre-deploy review 12.10) */}
-                {onLog || canMedical ? (
-                  <JoinedButtons className="bhbc-rh-actions" style={{ width: 240, flexShrink: 0 }} items={[
-                    onLog && { label: tr('Log lift'), title: tr('Log a lift for this athlete'), onClick: () => onLog(t.id) },
-                    canMedical && { label: act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report'), onClick: () => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id)) },
-                  ]} />
-                ) : <span className="bhbc-rh-actions" style={{ width: 240, flexShrink: 0 }} />}
-              </div>
-            );
-          })}
-          </NameScopeProvider>
-        </div>
-      </Card>
+      <RosterHealthCard roster={roster} medical={medical} loads={loads} canMedical={canMedical} onOpen={onOpen} onLog={onLog} onEdit={onEdit} onReport={onReport} />
 
       {/* NO RETURN-TO-PLAY IN THE CLUB ZONE (27.9, Ohad: "remove completely all rtp everywhere on bhbc"). */}
 

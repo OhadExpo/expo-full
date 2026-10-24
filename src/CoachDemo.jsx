@@ -5732,32 +5732,11 @@ export default function CoachDemo() {
               A reload rather than state: the demo reads readLang() at dozens
               of call sites instead of through a context, so flipping a state
               would leave half the screen in the old language. */}
-          {/* The demo's identity, in the space the nav does not need. The
-              chip is a bordered control and stands at the one control height;
-              the note is the banner sentence cut to what a buyer must know. */}
-          <div className="cd-pov" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginInlineStart: 'auto', flex: '0 1 auto', minWidth: 0 }}>
-            <div data-demo-chrome="" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, flex: '0 0 auto',
-              fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
-              background: C.acD, border: `1px solid ${C.cardBd}`,
-              borderRadius: 0, padding: '0 9px', minHeight: CTRL_H, boxSizing: 'border-box', whiteSpace: 'nowrap',
-            }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              {T('COACH VIEW')}
-            </div>
-            {/* the 'Mock data' note is gone (#949): the menu left it 50px even at 1920, so it showed as 'MOCK D'; the DEMO
-                switch under the header says what this is */}
-            <a href="/demo/trainee" className="cd-pov-link" style={{
-              ...baseBtn, background: 'transparent', color: C.tm,
-              border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 10, letterSpacing: 1.5,
-              flex: '0 0 auto', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            }}>{T('SEE ATHLETE VIEW →')}</a>
-          </div>
-          <button
+          {/* NO COACH VIEW CHIP, NO SEE ATHLETE VIEW (24.10 #999, Ohad on this header at 390 he: "Bad design here on the
+              menus"): the DEMO | COACH | ATHLETE | TEAMS switch is the page's first row now (#982) and says both - the
+              chip and the link repeated it inside the sliding rail, where the chip was the item cut at the edge
+              ("צד ה"). The rail is the real app's tabs plus language and the waitlist. */}
+          <button className="cd-lang"
             onClick={() => {
               const next = readLang() === 'he' ? 'en' : 'he';
               try { localStorage.setItem('expo-lang', next); } catch (e) { /* private mode */ }
@@ -5770,7 +5749,7 @@ export default function CoachDemo() {
             style={{
               ...baseBtn, background: 'transparent', color: C.tm,
               border: `1px solid ${C.cardBd}`, padding: '0 10px', fontSize: 10,
-              letterSpacing: '0.12em', flex: '0 0 auto',
+              letterSpacing: '0.12em', flex: '0 0 auto', marginInlineStart: 'auto' /* the end cluster starts here (#999) */,
             }}>
             {/* Both labels stacked so the button does not resize when it
                 flips — a control that changes width on click reads as a bug. */}
