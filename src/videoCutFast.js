@@ -38,5 +38,7 @@ export async function fastCut(file, { start = 0, end = null, maxWidth = 1280, ta
   const blob = new Blob([output.target.buffer], { type: 'video/mp4' });
   if (blob.size < 1024) throw new Error('fast cut: empty output');
   if (onProgress) onProgress(100);
-  return { blob, ext: '.mp4', originalSize: file.size, compressedSize: blob.size, fast: true, audio: !conv.discardedTracks.some((d) => d.track.isAudioTrack && d.track.isAudioTrack()) };
+  // the clip has sound only if the source had an audio track AND it was not dropped (#985: a silent-source clip read true)
+  const hadAudio = !!(await input.getPrimaryAudioTrack().catch(() => null));
+  return { blob, ext: '.mp4', originalSize: file.size, compressedSize: blob.size, fast: true, audio: hadAudio && !conv.discardedTracks.some((d) => d.track.isAudioTrack && d.track.isAudioTrack()) };
 }

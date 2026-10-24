@@ -124,12 +124,40 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
     const width = stripWRef.current;
     let dead = false;
     const v = document.createElement('video');
-    v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+    v.muted = true; v.playsInline = true; v.preload = 'auto';   // its src only if the worker fails (#985: a second decode of a 4K clip fought the drag)
     v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
     // Safari says 'seeked' before the frame can be drawn (WebKit 153588 / 194986): wait for the frame itself (or 150 ms)
     const frame = () => new Promise((res) => { if (typeof v.requestVideoFrameCallback === 'function') { v.requestVideoFrameCallback(() => res()); setTimeout(res, 150); } else res(); });
     const seekTo = (t) => new Promise((res) => { let done = false; const on = () => { if (done) return; done = true; v.removeEventListener('seeked', on); frame().then(res); }; v.addEventListener('seeked', on); v.currentTime = t; setTimeout(on, 1500); });
+    // THE FILMSTRIP FROM KEYFRAMES FIRST (24.10 #985, Ohad: "make sure the trimming works perfectly and is the smoothest
+    // you can make it"). Measured on 6 real clips: seeking the hidden <video> through a 4K clip took 6.7 s for the strip
+    // (HEVC 2.3 s) and fought the drag for the decoder. WebCodecs through Mediabunny (already loaded for the cut) decodes
+    // only the keyframe nearest each thumbnail, straight to thumbnail size, rotation applied - one small decode per
+    // thumbnail at any resolution. Sparse keyframes -> exact times in one forward pass. Any failure -> the <video> way.
+    // ...and in a Web Worker (src/trimThumbs.worker.js): on the main thread the decode stalled a 4K sheet 11 times for
+    // ~115 ms, which a finger on a handle would feel. Each thumbnail arrives as a small JPEG the moment it exists.
+    const urls = [];
+    let worker = null;
+    const viaKeyframes = () => new Promise((resolve, reject) => {
+      if (typeof Worker !== 'function') { reject(new Error('no Worker')); return; }
+      try { worker = new Worker(new URL('./trimThumbs.worker.js', import.meta.url), { type: 'module' }); } catch (e) { reject(e); return; }
+      let list = [];
+      const stall = setTimeout(() => reject(new Error('worker silent')), 8000);   // nothing in 8 s: the <video> way
+      worker.onmessage = (ev) => {
+        const m = ev.data || {};
+        if (dead) { resolve(); return; }
+        clearTimeout(stall);
+        if (m.n) { list = new Array(m.n).fill(null); setThumbs([...list]); }
+        else if (m.blob) { const u = URL.createObjectURL(m.blob); urls.push(u); list[m.i] = u; setThumbs([...list]); }
+        else if (m.done) resolve();
+        else if (m.error) reject(new Error(m.error));
+      };
+      worker.onerror = (ev) => { clearTimeout(stall); reject(new Error((ev && ev.message) || 'worker error')); };
+      worker.postMessage({ file, dur, width, stripH: STRIP_H, dpr: Math.min(2, window.devicePixelRatio || 1) });
+    });
     const run = async () => {
+      try { await viaKeyframes(); return; } catch { if (dead) return; try { worker && worker.terminate(); } catch { /* */ } worker = null; /* the <video> way below */ }
+      v.src = url;
       await new Promise((res) => { if (v.readyState >= 2) res(); else { v.addEventListener('loadeddata', res, { once: true }); setTimeout(res, 3000); } });
       try { await v.play(); v.pause(); } catch { /* iOS draws black frames until a video has played once */ }
       const aspect = (v.videoWidth || 9) / (v.videoHeight || 16);
@@ -146,7 +174,7 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
       }
     };
     run();
-    return () => { dead = true; try { v.removeAttribute('src'); v.load(); } catch { /* */ } };
+    return () => { dead = true; try { worker && worker.terminate(); } catch { /* */ } urls.forEach((u) => { try { URL.revokeObjectURL(u); } catch { /* */ } }); try { v.removeAttribute('src'); v.load(); } catch { /* */ } };
   }, [dur, stripW > 0, url]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- the strip's gestures ----
