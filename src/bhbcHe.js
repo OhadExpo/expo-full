@@ -350,6 +350,10 @@ export const HE = {
   'No sessions': 'אין אימונים',
   'Log a session': 'תוסיף אימון',        // future-as-imperative, his register
   'Previous injuries': 'פציעות קודמות',
+  'Recurring': 'פציעה חוזרת',
+  '{d} out': '{d} בחוץ',
+  'Earlier ({n})': 'ישנות יותר ({n})',
+  'Last 60 days only': 'רק 60 הימים האחרונים',
   '+ Log': '+ רישום',
   'No athletes on the roster yet': 'עוד אין שחקנים בסגל',
   'Add athletes': 'הוספת שחקנים',

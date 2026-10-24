@@ -2152,8 +2152,9 @@ function attendance28(rec, days) {
      111px, a 33px spread down six rows. 96 holds the longest surname in the
      squad and the UPDATE button that sits under it on a phone. */
   .bhbc-med-row{ grid-template-columns: 10px var(--med-name-w, 96px) minmax(0,1fr) !important; margin-inline-start: 0 !important; }
-          .bhbc-med-row > *:nth-child(3){ grid-column: 3 !important; }
-          .bhbc-med-row > *:nth-child(4){ grid-column: 2 !important; justify-self: start !important; }
+          .bhbc-med-row > .bhbc-med-days{ display: none !important; }
+          .bhbc-med-row > *:nth-child(4){ grid-column: 3 !important; }
+          .bhbc-med-row > *:nth-child(5){ grid-column: 2 !important; justify-self: start !important; }
           .bhbc-brief-week, .bhbc-brief-more{ padding-inline-start: 28px !important; }   /* #995: the dates on the surnames' x (dot 10 + gap 18) */
                   .bhbc-week-row{gap:7px!important}
           /* 84, NOT 74, AND THE 74 WAS MEASURED IN THE WRONG LANGUAGE.
@@ -4645,10 +4646,11 @@ function HeadCoachReport({ rows, fx, fixtures, medical, loads = {}, today, onOpe
       // #1009 (Ohad: "make the columns aligned for each word/column/row. For example the word available, the injuries, the
       // 60/120min"): the injury and the session kind are columns of the widest one, and the kind column is the injury's
       // less the time column (46 + its 18), so the medical STATUS and the week's MINUTES start on one x down the card.
-      const inj = Math.ceil(widest(medRef.current, '.bhbc-med-inj')), kind = Math.ceil(widest(el, '.bhbc-wk-kind'));
-      const mid = Math.max(inj, kind + 64) + 1;
+      // #1013 (Ohad: "still not good enough"): the two lists now have the SAME four columns - name | days | injury |
+      // status over date | time | kind | minutes - so the injury column is the kind column, one width for both
+      const mid = Math.ceil(Math.max(widest(medRef.current, '.bhbc-med-inj'), widest(el, '.bhbc-wk-kind'))) + 1;
       if (medRef.current) medRef.current.style.setProperty('--med-inj-w', `${mid}px`);
-      el.style.setProperty('--wk-kind-w', `${mid - 64}px`);
+      el.style.setProperty('--wk-kind-w', `${mid}px`);
     };
     fit(); let live = true; if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (live) fit(); }).catch(() => {});
     return () => { live = false; };
@@ -4786,9 +4788,11 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   // the injury description was ellipsized to "AN…", which is not
                   // an injury report. It now takes its own line and the UPDATE
                   // button stays whole.
-                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px var(--med-name-w, 96px) minmax(0, 1fr) auto', alignItems: 'center', columnGap: 18, rowGap: 2, marginInlineStart: -28 /* the dot hangs in the gutter: 10 + its 18 */, cursor: onOpen ? 'pointer' : 'default', padding: '6px 0' /* #995: the This-week pitch */ }}>
+                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px var(--med-name-w, 96px) 46px minmax(0, 1fr) auto', alignItems: 'center', columnGap: 18, rowGap: 2, marginInlineStart: -28 /* the dot hangs in the gutter: 10 + its 18 */, cursor: onOpen ? 'pointer' : 'default', padding: '6px 0' /* #995: the This-week pitch */ }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                     <span className="bhbc-med-name" style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, minWidth: 0, whiteSpace: 'nowrap' }}>{surnameOf(t.name)}</span>
+                    {/* the days since the injury, in the week's TIME column (46px): every column of the card on one x (#1013) */}
+                    <span className="bhbc-med-days" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inj.onsetDate ? daysFor(dayDiff(today, inj.onsetDate)) : ''}</span>
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
@@ -6263,10 +6267,14 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   // #1009 (Ohad: "the 60/120min ... not aligned"): the kind column is as wide as the widest kind on the list, so every
   // row's minutes start on one x ("120 MIN" under "SHOOTAROUND · 60 MIN" started 140px apart)
   const ppRef = useRef(null);
+  // #1014 (Ohad: "Bad design here"): from 621 the extras are NAMED columns right after the minutes - a lone warm-up
+  // square floated mid-row with the S&C chunk beside it and an empty band before them. A phone keeps the squares.
+  const ppWide = useMQ('(min-width: 621px)');
   useLayoutEffect(() => {
     const el = ppRef.current; if (!el) return;
-    let w = 0; el.querySelectorAll('.pp-kind').forEach((n) => { const r = document.createRange(); r.selectNodeContents(n); w = Math.max(w, r.getBoundingClientRect().width); });
-    el.style.setProperty('--pp-kind-w', `${Math.ceil(w)}px`);
+    const widest = (sel) => { let w = 0; el.querySelectorAll(sel).forEach((n) => { const r = document.createRange(); r.selectNodeContents(n); w = Math.max(w, r.getBoundingClientRect().width); }); return Math.ceil(w); };
+    el.style.setProperty('--pp-kind-w', `${widest('.pp-kind')}px`);
+    el.style.setProperty('--pp-min-w', `${widest('.pp-min')}px`);
   });
 
   if (!past.length) return null;
@@ -6309,7 +6317,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                     exactly like one without. The list is Past PRACTICES, so a
                     practice row shows its minutes only; any other kind names itself. */}
                 <span className="pp-kind" style={{ color: C.tm, fontFamily: FB, fontSize: 12, width: 'var(--pp-kind-w, auto)', flexShrink: 0, whiteSpace: 'nowrap' }}><SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} /></span>
-                <span className="pp-min" style={{ color: C.tm, fontFamily: FB, fontSize: 12, flex: '1 1 auto', minWidth: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline' }}>
+                <span className="pp-min" style={{ color: C.tm, fontFamily: FB, fontSize: 12, ...(ppWide ? { flex: '0 0 auto', width: 'var(--pp-min-w, auto)' } : { flex: '1 1 auto' }), minWidth: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline' }}>
                   {/* THE DURATION IS ONE TOKEN, NOT TWO WORDS THAT MAY PART.
                       Measured 19.9 at 390 in Hebrew: this column is the one that
                       gives way, and every past-practice row broke "120 דק׳" in
@@ -6322,12 +6330,13 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                   {densityOf(f) ? <span style={{ flexShrink: 0 }}>{'\u00A0·\u00A0'}<DensityBit f={f} /></span> : null}
                 </span>
                 {/* the S&C slot: on every row while the list has any S&C (empty where none ran), gone when it has none (anySc) */}
-                <span className="pp-sc-slot" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 'var(--past-sc-w)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? 'grid' : 'none', gridTemplateColumns: listHas.wu ? '8px max-content' : 'max-content', columnGap: 6, justifyContent: 'start', alignItems: 'center' /* #1009: the warm-up square and the S&C each own a cell, so both start on one x on every row */ }}>
+                <span className="pp-sc-slot" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: ppWide ? 'auto' : 'var(--past-sc-w)', marginInlineStart: ppWide ? 14 : 0, flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? 'grid' : 'none', gridTemplateColumns: ppWide ? [listHas.wu && 'minmax(104px, max-content)', listHas.sc && 'minmax(124px, max-content)'].filter(Boolean).join(' ') : (listHas.wu ? '8px max-content' : 'max-content'), columnGap: ppWide ? 20 : 6, justifyContent: 'start', alignItems: 'center' /* #1009: the warm-up square and the S&C each own a cell, so both start on one x on every row */ }}>
                   {/* the warm-up's purple square leads the slot (#646): it is its own thing, not S&C,
                       and a word for it would not fit a 390 row beside 'S&C 12′' */}
-                  {listHas.wu ? (d.wuCount > 0 ? <span role="img" aria-label={`${tr('Warm-up')} ${WARMUP_MIN} ${tr('min')}`} title={`${tr('Warm-up')} · ${WARMUP_MIN} ${tr('min')}`} style={{ display: 'inline-block', width: 8, height: 8, background: WARMUP_COLOR, verticalAlign: 'baseline' /* #735: 'middle' hung it 1.3px under the caps' baseline; on the baseline its 8px is the caps' height */ }} /> : <span />) : null}
+                  {listHas.wu ? (d.wuCount > 0 ? (ppWide ? <span className="pp-wu"><span role="img" aria-label={`${tr('Warm-up')} ${WARMUP_MIN} ${tr('min')}`} title={`${tr('Warm-up')} · ${WARMUP_MIN} ${tr('min')}`} style={{ display: 'inline-block', width: 8, height: 8, background: WARMUP_COLOR, verticalAlign: 'baseline' /* #735: 'middle' hung it 1.3px under the caps' baseline; on the baseline its 8px is the caps' height */ }} /><span className="pp-wu-word" style={{ marginInlineStart: 6 }}>{tr('Warm-up')}</span></span> : <span role="img" aria-label={`${tr('Warm-up')} ${WARMUP_MIN} ${tr('min')}`} title={`${tr('Warm-up')} · ${WARMUP_MIN} ${tr('min')}`} style={{ display: 'inline-block', width: 8, height: 8, background: WARMUP_COLOR, verticalAlign: 'baseline' /* #735: 'middle' hung it 1.3px under the caps' baseline; on the baseline its 8px is the caps' height */ }} />) : <span />) : null}
                   {d.scMinutes > 0 ? <span><span aria-hidden style={{ display: 'inline-block', width: 8, height: 8, background: SC_COLOR, marginInlineEnd: 4, verticalAlign: 'baseline' }} /><span className="pp-sc-word">{tr('S&C')} </span><MinTok n={d.scMinutes} /></span> : <span />}
                 </span>
+                {ppWide && <span aria-hidden="true" style={{ flex: '1 1 auto' }} />}
                 {/* The two numbers a head coach actually asks for. */}
                 {/* THE WHOLE SQUAD OUT IS NOT A 0/10 PRACTICE (#305 B8) - on a
                     travel day nobody was owed it, and "0/10" reads as ten
@@ -7051,8 +7060,14 @@ function StandingsTable({ standings }) {
 // rule decides which view a game belongs to, and every surface that counts games reads it: the Games tab (player stats,
 // the games list, the results), the player popup's season card and history, the roster's points per game.
 const COMP_VIEWS = ['all', 'preseason', 'season', 'playoff', 'cup', 'bcl'];
+// THE WINNER CUP IS THE PRE-SEASON (24.10 #1017, Ohad: "We only had preseason games (no cup games) ... figure out why you
+// were wrong"): every name with 'cup' in it went to CUP, and the Winner Cup (גביע ווינר, the league's cup) is the
+// tournament the Israeli clubs play in September BEFORE the league - pre-season, its final included. The State Cup
+// (גביע המדינה) is the real cup and stays one.
+const PRESEASON_CUP_RX = /winner\s*cup|ווינר|league\s*cup|גביע\s*הליגה/i;
 const compWordKey = (words) => {
   const w = String(words || '');
+  if (PRESEASON_CUP_RX.test(w)) return 'preseason';
   if (/champions|\bbcl\b|europe|fiba/i.test(w)) return 'bcl';
   if (/play-?offs?|final|semi|quarter|פלייאוף|גמר/i.test(w)) return 'playoff';
   if (/cup|גביע/i.test(w)) return 'cup';
@@ -7288,7 +7303,9 @@ function ResultsList({ games: allGames0, bhbcOnly, fixtures = [], onPick = null,
   // competition with the newest game first. The round (or a playoff's stage -
   // a playoff game has no "מחזור N") moves into the row's detail line, and a
   // round the feed never gave is simply not claimed (the old "Round NaN").
-  const compOf = (g) => (g.comp ? tr(g.comp) : g.stage ? tr(g.stage) : tr('League'));
+  // a pre-season tournament game (the Winner Cup, #1017) sits under PRE-SEASON; its row still names the tournament
+  const preCup = (g) => PRESEASON_CUP_RX.test(`${g.comp || ''} ${g.stage || ''}`);
+  const compOf = (g) => (preCup(g) ? tr('Pre-season') : g.comp ? tr(g.comp) : g.stage ? tr(g.stage) : tr('League'));
   const groups = [];
   [...played].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).forEach((g) => {
     const k = compOf(g);
@@ -7325,7 +7342,7 @@ function ResultsList({ games: allGames0, bhbcOnly, fixtures = [], onPick = null,
             const drew = us === them;
             const fx = fxOf(g);
             return <GameRow key={i} dataKey={g.date} date={g.date ? ddmm(g.date) : ''} title={`${bhHome ? tr('vs') : '@'} ${opp}`}
-              detail={roundOf(g) || ''} venue={g.venue ? restSay(g.venue) : ''} /* the title's vs / @ says home or away (#972: 'AWAY' again at the line's end wrapped alone on a phone) */
+              detail={[preCup(g) && g.comp ? tr(g.comp) : null, roundOf(g)].filter(Boolean).join(' · ')} venue={g.venue ? restSay(g.venue) : ''} /* the title's vs / @ says home or away (#972: 'AWAY' again at the line's end wrapped alone on a phone) */
               onClick={fx ? () => onPick(fx) : null}
               end={(
                 <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, fontFamily: FN, fontVariantNumeric: 'tabular-nums' }}>
@@ -8077,6 +8094,96 @@ function LoadOutputCard({ rows, loads, medical }) {
   );
 }
 
+// INJURY HISTORY, ONE ROW A PLAYER (24.10 #1016, Ohad: "The cleared system needs to work better so we won't have everyone
+// on cleared by the end of the year"). A row per cleared RECORD grew without end - by May every player would be on it,
+// most of them twice. Now: a row per player (never longer than the squad), newest clearance first, with how many injuries
+// he has had, the latest one, when it was cleared, and RECURRING when the same body part + side has gone twice (the
+// re-injury risk a physio looks for first). A row opens his records - each one opens its file. Only players cleared in
+// the last 60 days show; the rest wait behind one toggle.
+// No clearance date is stored on a record: the last progress note, else its last save, is when it ended - the same
+// evidence medicalOn() uses.
+const clearedOn = (inj) => {
+  const notes = (inj.progress || []).map((x) => x && x.date).filter(Boolean).sort();
+  return (notes.length ? notes[notes.length - 1] : '') || localDayOf(inj.updatedAt) || inj.onsetDate || '';
+};
+const HIST_COLS = '22px minmax(0, 1fr) 92px 92px';
+function InjuryHistory({ roster, medical, rowOpens, openRow }) {
+  const tr = useT();
+  const today = todayISO();
+  const [openId, setOpenId] = useState(null);
+  const [older, setOlder] = useState(false);
+  const players = roster.map((t) => {
+    const done = resolvedInjuries(medical, t.id).map((inj) => ({ inj, end: clearedOn(inj) }))
+      .sort((a, b) => String(b.end).localeCompare(String(a.end)));
+    if (!done.length) return null;
+    const all = (medical[t.id] || {}).injuries || [];
+    const seen = new Map();
+    all.forEach((x) => { const k = `${String(x.bodyPart || '').split('/')[0].trim().toLowerCase()}|${x.side || ''}`; if (k !== '|') seen.set(k, (seen.get(k) || 0) + 1); });
+    const recurring = [...seen.values()].some((n) => n > 1);
+    return { t, done, last: done[0], total: all.length, recurring };
+  }).filter(Boolean).sort((a, b) => String(b.last.end).localeCompare(String(a.last.end)));
+  if (!players.length) return null;
+  const recent = players.filter((x) => x.last.end && dayDiff(today, x.last.end) <= 60);
+  const shown = older || !recent.length ? players : recent;
+  const rest = players.length - recent.length;
+  const part = (inj) => [inj.bodyPart && String(inj.bodyPart).split('/')[0].trim(), inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join('\u00a0· ');
+  const date = (iso) => { if (!iso) return ''; const d = fmtNumericDate(iso); if (!/^\d\d\/\d\d\/\d{4}$/.test(d)) return d; return <>{d.slice(0, -4)}<span className="yr-cent">{d.slice(-4, -2)}</span>{d.slice(-2)}</>; };
+  const cell = { fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', justifySelf: 'end' };
+  return (
+    <Card padding={14} leftStripe={'#37B27C'} header={secTitle('Previous injuries')}
+      headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{players.length}</span>}>
+      <div>
+        {shown.map(({ t, done, last, total, recurring }, pi) => {
+          const isOpen = openId === t.id;
+          return (
+            <div key={t.id} style={{ borderBottom: pi === shown.length - 1 && !(rest > 0) ? 'none' : `1px solid ${C.cardBd}` }}>
+              <div className="bhbc-row bhbc-prev-row" role="button" tabIndex={0} aria-expanded={isOpen}
+                onClick={() => setOpenId(isOpen ? null : t.id)}
+                onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setOpenId(isOpen ? null : t.id); } }}
+                style={{ display: 'grid', gridTemplateColumns: HIST_COLS, columnGap: 12, alignItems: 'center', padding: '10px 2px', cursor: 'pointer' }}>
+                <span style={{ textAlign: 'end', alignSelf: 'start', lineHeight: '17px' /* on the name's line, not the row's middle */, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+                  <span style={{ fontFamily: FB, fontSize: 12, lineHeight: '14px', color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>
+                    {part(last.inj)}
+                    {recurring && <span data-recurring="" style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--bhbc-amber-text, #E0A73A)', marginInlineStart: 8, whiteSpace: 'nowrap' }}>{tr('Recurring')}</span>}
+                  </span>
+                </span>
+                <span style={{ ...cell, fontWeight: 700, color: C.tx }}>{total === 1 ? tr('1 injury') : `${total} ${tr('injuries')}`}</span>
+                <span dir="ltr" style={cell}>{date(last.end)}</span>
+              </div>
+              {isOpen && (
+                <div style={{ paddingBottom: 8 }}>
+                  {done.map(({ inj, end }) => {
+                    const out = inj.onsetDate && end ? Math.max(0, dayDiff(end, inj.onsetDate)) : null;
+                    return (
+                      <div key={inj.id} className="bhbc-row" role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
+                        onClick={rowOpens ? () => openRow(t, inj) : undefined}
+                        onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined}
+                        style={{ display: 'grid', gridTemplateColumns: HIST_COLS, columnGap: 12, alignItems: 'center', minHeight: 32, padding: '4px 2px', cursor: rowOpens ? 'pointer' : 'default' }}>
+                        <span />
+                        <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}>{part(inj)}</span>
+                        <span style={cell}>{out != null ? tr('{d} out').replace('{d}', daysFor(out)) : ''}</span>
+                        <span dir="ltr" style={cell}>{date(end)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {rest > 0 && recent.length > 0 && (
+          <button type="button" onClick={() => setOlder((v) => !v)} className="bhbc-ghost-btn"
+            style={{ marginTop: 12, height: 'var(--btn-h)', padding: '0 14px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
+            {older ? tr('Last 60 days only') : tr('Earlier ({n})').replace('{n}', rest)}
+          </button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 // status keeps the pill's 136 floor (3.10 #526: at 120 the pill ran into SINCE). #946: the spare width is SHARED - it all
 // went to the injury column, which left one wide empty band in the middle of every row on a desktop.
 const INJ_COLS = 'minmax(170px, 1.15fr) minmax(0, 1.5fr) minmax(136px, 1fr) minmax(108px, 0.85fr) minmax(110px, 0.9fr) 72px';
@@ -8094,17 +8201,19 @@ const READY_EN = { poor: 'poor', ok: 'ok', good: 'good', great: 'great', low: 'l
 // a poor night, low energy) - and every column sorts, like every zone table. One component for every club, demo and
 // seat. 7 columns from 1240px; under it each row is two lines (the sort bar stands in for the header); a phone puts the
 // actions on a third.
-const RH_COLS = 'minmax(170px, 1.3fr) 124px minmax(232px, 1.5fr) 80px 80px minmax(120px, 1fr) 240px';
 // A TABLET IS A TABLE TOO (24.10 #1010, Ohad on the tablet: "Horrible design. Redo this asap"): under 1240 every row
 // was a two-line block with a label on every cell - 190px a player, mostly 'LAST CHECK-IN / -'. From 621 to 1239 it is
 // the desktop's table: one line a player under the real header, every column on one x, and ONE action (the medical
 // record, or Log lift for a seat without medical) - Log lift lives on the player's card and the Lifts tab.
-const RH_TAB = 'minmax(118px, 1.2fr) 104px minmax(0, 1fr) 64px 64px minmax(0, 0.9fr) 96px';   // 118: 'WHITFIELD' + its jersey never clips (measured 800)
+// #1015 (Ohad: "I need to see full names"): the name cell is the surname over the given name - the full name at any
+// width, never initials or a clipped surname; the check-in column only when someone checked in (Herzliya: 14 dashes)
+const rhCols = (tablet, ci) => (tablet
+  ? ['minmax(150px, 1.3fr)', '104px', ci && 'minmax(0, 1fr)', '64px', '64px', 'minmax(0, 0.9fr)', '96px']
+  : ['minmax(170px, 1.3fr)', '124px', ci && 'minmax(232px, 1.5fr)', '80px', '80px', 'minmax(120px, 1fr)', '240px']).filter(Boolean).join(' ');
 function RosterHealthCard({ roster, medical, loads = {}, canMedical, onOpen, onLog, onEdit, onReport }) {
   const tr = useT();
   const he = useHe();
   const tablet = useMQ('(min-width: 621px) and (max-width: 1239px)');
-  const cols = tablet ? RH_TAB : RH_COLS;
   const today = todayISO();
   const SEV = { out: 0, 'non-contact': 1, limited: 2, available: 3 };
   const AMBER = 'var(--bhbc-amber-text, #E0A73A)';
@@ -8133,7 +8242,9 @@ function RosterHealthCard({ roster, medical, loads = {}, canMedical, onOpen, onL
   }, 'status');
   const lc = (s) => (he ? s : String(s).toLowerCase());
   const word = (kind, v) => (he ? (READY_HE[kind] || {})[v] : READY_EN[v]) || v;
-  const head = [['name', tr('Athlete')], ['status', tr('Status')], ['checkin', tr('Last check-in')], ['out', tr('Out · 28d')], ['train', tr('Min · 7d')], ['history', tr('History')]];
+  const hasCI = rows.some((x) => x.rd);
+  const cols = rhCols(tablet, hasCI);
+  const head = [['name', tr('Athlete')], ['status', tr('Status')], hasCI && ['checkin', tr('Last check-in')], ['out', tr('Out · 28d')], ['train', tr('Min · 7d')], ['history', tr('History')]].filter(Boolean);
   const th = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm };
   const k = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.td, marginInlineEnd: 5 };
   return (
@@ -8151,19 +8262,24 @@ function RosterHealthCard({ roster, medical, loads = {}, canMedical, onOpen, onL
             <div key={t.id} className="bhbc-row bhbc-rh2-row" style={{ display: 'grid', gridTemplateColumns: cols, gap: tablet ? 10 : 12, alignItems: 'center', minHeight: 56, padding: '8px 0', boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, cursor: 'pointer' }} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}>
                 <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
-                <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
+                {tablet ? (
+                  <span data-rh-name="" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.3 }}>
+                    <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{surnameOf(t.name)}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{String(t.name || '').trim().split(/\s+/).slice(0, -1).join(' ')}</span>
+                  </span>
+                ) : <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />}
               </div>
               <StatusWord status={status} />
               <div className="rh2-meta" style={{ display: 'contents' }}>
                 {/* CHECK-IN: his own words from the last 3 days - your pain rule colours it (0-3 fine, 4-5 modify, 6+ stop) */}
-                <div data-rh-checkin="" style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 0, lineHeight: 1.5, minHeight: tablet ? 0 : '3em' /* two lines on every row, a '—' too (desktop) */, overflow: 'hidden' }}>
+                {hasCI && <div data-rh-checkin="" style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 0, lineHeight: 1.5, minHeight: tablet ? 0 : '3em' /* two lines on every row, a '—' too (desktop) */, overflow: 'hidden' }}>
                   <span className="rh2-k" style={k}>{tr('Last check-in')}</span>
                   {/* TWO FIXED LINES, every row the same: pain (and the day, when it is not today), then sleep · energy -
                       one running line broke wherever the column ran out ("ENERGY / GOOD") */}
                   {r ? <span className="rh2-ci" style={{ display: 'inline-flex', flexDirection: 'column', verticalAlign: 'top', whiteSpace: 'nowrap', maxWidth: '100%' }}>
                     <span>
                       {pain != null ? <span style={{ fontWeight: pain >= 4 ? 800 : 700, color: pain >= 6 ? '#DE4E3B' : pain >= 4 ? AMBER : C.tx }}>{tr('pain')} {pain}</span> : <span style={{ color: C.td }}>{tr('pain')} —</span>}
-                      {rd !== today && <span style={{ color: C.td }}>{' · '}{monDay(rd)}</span>}
+                      {rd !== today && <span style={{ color: C.td }}>{' · '}{tablet ? ddmm(rd) : monDay(rd)}</span>}
                     </span>
                     <span>
                       {lc(tr('Sleep'))} <span style={{ fontWeight: 700, color: r.sleep === 'poor' ? AMBER : C.tx }}>{r.sleep ? word('sleep', r.sleep) : '—'}</span>
@@ -8171,7 +8287,7 @@ function RosterHealthCard({ roster, medical, loads = {}, canMedical, onOpen, onL
                     </span>
                     {tablet && <span>{lc(tr('Energy'))} <span style={{ fontWeight: 700, color: r.energy === 'low' ? AMBER : C.tx }}>{r.energy ? word('energy', r.energy) : '—'}</span></span>}
                   </span> : <span className="rh2-ci" style={{ display: 'inline-flex', flexDirection: 'column', verticalAlign: 'top' }}><span style={{ color: C.td }}>—</span>{!tablet && <span>{' '}</span>}</span>}
-                </div>
+                </div>}
                 <div data-rh-out="" style={{ fontFamily: FN, fontSize: 12, fontWeight: out28 ? 800 : 400, color: out28 ? C.tx : C.td, fontVariantNumeric: 'tabular-nums' }}><span className="rh2-k" style={k}>{tr('Out · 28d')}</span>{out28}</div>
                 <div data-rh-min="" style={{ fontFamily: FN, fontSize: 12, color: min7 ? C.tx : C.td, fontVariantNumeric: 'tabular-nums' }}><span className="rh2-k" style={k}>{tr('Min · 7d')}</span>{min7 ? <MinTok n={min7} /> : '0'}</div>
                 <div data-rh-hist="" style={{ fontFamily: FN, fontSize: 11, lineHeight: 1.5, color: hist ? C.tx : C.td, minWidth: 0 }}><span className="rh2-k" style={k}>{tr('History')}</span>
@@ -8314,42 +8430,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
         </Card>
       )}
 
-      {(() => {
-        // Every cleared injury, newest first. This is the history he asked
-        // for: resolving moves a record HERE, it never removes it.
-        const past = roster.flatMap((t) => resolvedInjuries(medical, t.id).map((inj) => ({ t, inj })));
-        past.sort((a, b) => String(b.inj.onsetDate || '').localeCompare(String(a.inj.onsetDate || '')));
-        if (!past.length) return null;
-        return (
-          <Card padding={14} leftStripe={'#37B27C'} header={secTitle('Previous injuries')}
-            headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{past.length}</span>}>
-            <div>
-              <NameScopeProvider>
-              {past.map(({ t, inj }, pi) => (
-                <div key={t.id + inj.id} className="bhbc-row bhbc-prev-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
-                  role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
-                  onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined}
-                  // ONE ROW GRAMMAR (5.10 #573, Ohad: "bad design for each box"): a
-                  // flex-wrap row laid three rows out three ways - the injury
-                  // under the name on one, beside it on the next, the date and
-                  // CLEARED orphaned at the end of a second line. Now every row
-                  // is the same grid: jersey · name · date · status on the first
-                  // line, the injury on its own line under the name. Nothing
-                  // wraps, nothing floats.
-                  style={{ display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr) auto auto', columnGap: 12, rowGap: 3, alignItems: 'center', padding: pi === past.length - 1 ? '11px 2px 1px' : '11px 2px 12px' /* the name's caps 15 under the line above, the injury line 15 over the rule (#735 band probe; 13 / 10 measured 17 / 13); the last row sits on the card's own 14 */, borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
-                  <span style={{ textAlign: 'end', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
-                  <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
-                  {/* #1009 (Ohad: "On cleared and the date it's not aligned vertically. Same row"): both span the name AND the injury line, so they sit on the row's centre */}
-                  <span dir="ltr" style={{ gridColumn: 3, gridRow: '1 / span 2', alignSelf: 'center', fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inj.onsetDate ? (() => { const d = fmtNumericDate(inj.onsetDate); if (!/^\d\d\/\d\d\/\d{4}$/.test(d)) return d; return <>{d.slice(0, -4)}<span className="yr-cent">{d.slice(-4, -2)}</span>{d.slice(-2)}</>; })() : ''}</span>
-                  <span style={{ gridColumn: 4, gridRow: '1 / span 2', alignSelf: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', whiteSpace: 'nowrap', minWidth: 72, textAlign: 'end' }}>{tr('Cleared')}</span>
-                  <span style={{ gridColumn: 2, gridRow: 2, fontFamily: FB, fontSize: 12, lineHeight: '14px' /* the '·' pulled a fallback font with an 18px line: rows with a separator stood 4px taller (#735) */, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join('\u00a0· ')}</span>
-                </div>
-              ))}
-              </NameScopeProvider>
-            </div>
-          </Card>
-        );
-      })()}
+      <InjuryHistory roster={roster} medical={medical} rowOpens={rowOpens} openRow={openRow} />
 
       {/* The sRPE session-load card is not mounted: the club logs no RPE, ever
           (Ohad 23.9), so it could only say "no load logged yet" (27.9 sweep). */}

@@ -190,12 +190,14 @@ function playerLine(c) {
   const { browser, page } = await connect();
   console.log(`Syncing ${seasonLabel} (cYear=${cYear})…`);
   const raw = await scrapeResults(page);
-  // Normalize games. Score orientation: table is home(מארחת) then away(אורחת);
-  // score string "H-A" (home-away) per the league layout.
+  // Normalize games. The table is home (מארחת) then away (אורחת), and the RESULT CELL IS AWAY-HOME (24.10 #1018, Ohad: "we
+  // won vs ness ziona but lost to Ramat gan"): read as home-away since this script was written, every result in the feed
+  // was inverted - measured: 12.10 Herzliya home, cell 89-79, Herzliya's own box score 79; 18.10 away, cell 103-96, box 103.
+  // The box-score check below proves the orientation on every run.
   const games = raw.filter((g) => g.teams.length >= 2).map((g) => {
     const [home, away] = g.teams.map(norm);
     let hs = null, as = null;
-    if (g.score) { const [a, b] = g.score.split(/[-–]/).map(Number); hs = a; as = b; }
+    if (g.score) { const [a, b] = g.score.split(/[-–]/).map(Number); as = a; hs = b; }
     const dateCell = g.cells.find((c) => /\d{1,2}\/\d{1,2}\/\d{4}/.test(c)) || '';
     const dm = dateCell.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     const date = dm ? `${dm[3]}-${dm[2].padStart(2, '0')}-${dm[1].padStart(2, '0')}` : null;
@@ -221,7 +223,8 @@ function playerLine(c) {
 
   // ---- BHBC player + team stats from box scores ----
   const players = {}; const teamAgg = { gp: 0, pf: 0, pa: 0, w: 0, l: 0 };
-  const P = (n) => (players[n] = players[n] || { name: n, gp: 0, min: 0, pts: 0, reb: 0, ast: 0, stl: 0, to: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, pir: 0, pm: 0, log: [] });
+  const P = (n) => (players[n] = players[n] || { name: n, gp: 0, min: 0, pts: 0, reb: 0, ast: 0, stl: 0, to: 0, fg2m: 0, fg2a: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, pir: 0, pm: 0, log: [] });
+  const scoreMismatch = [];
   const boxGames = bhbcGames.filter((g) => g.gameId && g.played);
   console.log(`  fetching ${boxGames.length} box scores…`);
   for (const g of boxGames) {
@@ -233,22 +236,30 @@ function playerLine(c) {
     teamAgg.gp++; teamAgg.pf += isBHBC(g.home) ? g.hs : g.as; teamAgg.pa += isBHBC(g.home) ? g.as : g.hs;
     const won = (isBHBC(g.home) && g.hs > g.as) || (isBHBC(g.away) && g.as > g.hs);
     won ? teamAgg.w++ : teamAgg.l++;
+    // THE ORIENTATION PROOF (#1018): Herzliya's players' points must add up to Herzliya's score in the result cell
+    const boxPts = bhbcTable.players.map(playerLine).filter((x) => x.name).reduce((a, x) => a + (x.pts || 0), 0);
+    const ours = isBHBC(g.home) ? g.hs : g.as;
+    if (boxPts !== ours) scoreMismatch.push(`${g.date} ${g.home} - ${g.away}: result cell gives Herzliya ${ours}, its box score adds to ${boxPts}`);
     for (const c of bhbcTable.players) {
       const ln = playerLine(c); if (!ln.name) continue;
       const p = P(ln.name);
       if (ln.jersey != null) p.jersey = ln.jersey;
       p.gp++; p.min += ln.min; p.pts += ln.pts; p.reb += ln.reb; p.ast += ln.ast; p.stl += ln.stl; p.to += ln.to;
-      p.tpm += ln.tp.m; p.tpa += ln.tp.a; p.ftm += ln.ft.m; p.fta += ln.ft.a; p.pir += ln.pir; p.pm += ln.pm;
+      p.fg2m += ln.fg2.m; p.fg2a += ln.fg2.a; p.tpm += ln.tp.m; p.tpa += ln.tp.a; p.ftm += ln.ft.m; p.fta += ln.ft.a; p.pir += ln.pir; p.pm += ln.pm;
       p.log.push({ date: g.date, opp: oppName, ...ln });
     }
     process.stdout.write('.');
   }
   console.log('');
+  if (scoreMismatch.length) {   // never write a feed whose results contradict its own box scores
+    console.error(`SCORE ORIENTATION CHECK FAILED - nothing written:\n  ${scoreMismatch.join('\n  ')}`);
+    process.exit(2);
+  }
   const playerList = Object.values(players).map((p) => ({
     ...p,
     ppg: p.gp ? +(p.pts / p.gp).toFixed(1) : 0, rpg: p.gp ? +(p.reb / p.gp).toFixed(1) : 0,
     apg: p.gp ? +(p.ast / p.gp).toFixed(1) : 0, mpg: p.gp ? +(p.min / p.gp).toFixed(1) : 0,
-    tpp: p.tpa ? Math.round((p.tpm / p.tpa) * 100) : 0, ftp: p.fta ? Math.round((p.ftm / p.fta) * 100) : 0,
+    fg2p: p.fg2a ? Math.round((p.fg2m / p.fg2a) * 100) : 0, tpp: p.tpa ? Math.round((p.tpm / p.tpa) * 100) : 0, ftp: p.fta ? Math.round((p.ftm / p.fta) * 100) : 0,
     pirpg: p.gp ? +(p.pir / p.gp).toFixed(1) : 0,
   })).sort((a, b) => b.ppg - a.ppg);
 
